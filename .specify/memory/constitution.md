@@ -1,50 +1,81 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report:
+- Version change: none → 1.0.0
+- Modified principles: Initial creation of all principles focused on PowerToys NewPlus parity
+- Added sections: All core principles, Development Standards, Quality Assurance, Governance, Attribution
+- Removed sections: None
+- Templates requiring updates:
+  ✅ Updated .specify/templates/plan-template.md (Constitution Check references)
+  ✅ Updated .specify/templates/spec-template.md (Requirements alignment)
+  ✅ Updated .specify/templates/tasks-template.md (Task categorization)
+- Follow-up TODOs: None
+-->
+
+# NewPlus for VS Code Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. PowerToys NewPlus Parity
+Feature implementation MUST maintain full parity with PowerToys NewPlus functionality.
+File and directory creation workflows MUST replicate the Windows Explorer NewPlus experience.
+Template management MUST use the default PowerToys NewPlus template directory.
+"Open Template Directory" command MUST be implemented for template access.
+All PowerToys NewPlus features MUST be accurately reproduced in VS Code context.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. VS Code File Explorer Integration
+Extension MUST integrate seamlessly with VS Code's native file explorer.
+Context menu integration MUST provide "New+" option that handles both file and folder templates.
+Template selection MUST distinguish between file and folder templates in the Quick Pick interface.
+File creation workflows MUST respect VS Code workspace and folder structures.
+Template selection MUST be intuitive and follow VS Code UX patterns.
+Created files MUST automatically open in VS Code editor when appropriate.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Test-Driven Development (NON-NEGOTIABLE)
+Tests MUST be written before implementation: Unit tests → Integration tests → Implementation.
+Extension activation, commands, and UI interactions MUST have automated test coverage.
+VS Code test environment MUST be configured for reliable CI/CD execution.
+Red-Green-Refactor cycle strictly enforced for all feature development.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Template Management Fidelity
+Template directory MUST default to PowerToys NewPlus template location.
+Template discovery MUST support all PowerToys NewPlus template formats and structures.
+Template variables and placeholders MUST be processed identically to PowerToys NewPlus.
+Template organization (folders, categories) MUST be preserved and respected.
+Custom template paths MUST be configurable for user flexibility.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Marketplace Readiness
+Extension metadata MUST include clear description, categories, and keywords for discoverability.
+Documentation MUST include installation instructions, usage examples, and troubleshooting.
+Packaging MUST follow VS Code marketplace guidelines with proper versioning and changelog.
+Security and privacy considerations MUST be documented for any data collection or external calls.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## Development Standards
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+TypeScript MUST be used for all extension code with strict mode enabled.
+ESLint and Prettier MUST be configured for consistent code style and quality.
+VS Code Workspace settings MUST be included for consistent development environment.
+Dependencies MUST be minimal and regularly audited for security vulnerabilities.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+## Quality Assurance
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+All releases MUST pass automated testing in VS Code stable and insiders builds.
+Extension MUST be tested on Windows, macOS, and Linux platforms.
+Performance regression testing MUST be performed for activation time and memory usage.
+User feedback MUST be collected and addressed through GitHub issues and marketplace reviews.
+
+## Attribution
+
+**Extension Author**: Jordan Haisley  
+**Original Concept**: Microsoft PowerToys Team, specifically @lei9444  
+**Source Inspiration**: https://github.com/microsoft/PowerToys/tree/main/src/modules/NewPlus
+
+This extension implements PowerToys NewPlus functionality within VS Code. All credit for the original concept, design, and implementation patterns belongs to the Microsoft PowerToys team.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes all other development practices and guidelines.
+Constitutional amendments require documentation of rationale and impact assessment.
+All feature implementations MUST demonstrate compliance with constitutional principles.
+Complexity that violates principles MUST be justified in writing or simplified.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2025-10-01 | **Last Amended**: 2025-10-01

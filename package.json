@@ -1,0 +1,101 @@
+{
+  "name": "newplus",
+  "displayName": "NewPlus",
+  "description": "A port of the New+ PowerToy for creating files and folders from templates",
+  "version": "0.0.1",
+  "publisher": "jhaisley",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "template",
+    "file",
+    "folder", 
+    "powertoys",
+    "new",
+    "create"
+  ],
+  "activationEvents": [
+    "onCommand:newFromTemplate.createFromTemplate",
+    "onCommand:newFromTemplate.openTemplatesFolder"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "newFromTemplate.createFromTemplate",
+        "title": "New+",
+        "category": "New from Template"
+      },
+      {
+        "command": "newFromTemplate.openTemplatesFolder", 
+        "title": "New from Template: Open Templates Folder",
+        "category": "New from Template"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "newFromTemplate.createFromTemplate",
+          "when": "explorerResourceIsFolder || !explorerResourceIsRoot",
+          "group": "navigation@1"
+        }
+      ],
+      "file/newFile": [
+        {
+          "command": "newFromTemplate.createFromTemplate", 
+          "group": "file@1"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "New from Template",
+      "properties": {
+        "newFromTemplate.templatesPath": {
+          "type": "string", 
+          "default": "%LOCALAPPDATA%\\Microsoft\\PowerToys\\NewPlus\\Templates",
+          "description": "Path to templates directory"
+        },
+        "newFromTemplate.display.hideFileExtensions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Hide file extensions in template picker"
+        },
+        "newFromTemplate.display.hideSortingPrefix": {
+          "type": "boolean", 
+          "default": false,
+          "description": "Hide leading digits and dots from template names"
+        },
+        "newFromTemplate.behavior.replaceVariablesInFilename": {
+          "type": "boolean",
+          "default": false, 
+          "description": "Enable variable substitution in filenames"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/glob": "^8.1.0",
+    "@types/mocha": "^10.0.1",
+    "@types/node": "^20.2.5",
+    "@types/vscode": "^1.104.0",
+    "@typescript-eslint/eslint-plugin": "^5.59.8",
+    "@typescript-eslint/parser": "^5.59.8",
+    "@vscode/test-electron": "^2.3.2",
+    "eslint": "^8.41.0",
+    "glob": "^8.1.0",
+    "mocha": "^10.2.0",
+    "typescript": "^5.1.3"
+  }
+}

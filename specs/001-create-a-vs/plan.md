@@ -1,8 +1,8 @@
 
-# Implementation Plan: [FEATURE]
+# Implementation Plan: NewPlus VS Code Extension
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
+**Branch**: `001-create-a-vs` | **Date**: 2025-10-01 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/001-create-a-vs/spec.md`
 
 ## Execution Flow (/plan command scope)
 ```
@@ -31,27 +31,27 @@
 - Phase 3-4: Implementation execution (manual or via tools)
 
 ## Summary
-[Extract from feature spec: primary requirement + technical approach from research]
+VS Code extension that replicates PowerToys NewPlus functionality by adding context menu integration to the File Explorer for creating new files and folders from user-defined templates. Features include template selection via Quick Pick menu, variable substitution in filenames, and configurable template directory management with default PowerToys compatibility.
 
 ## Technical Context
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: TypeScript 5.0+ with strict mode enabled
+**Primary Dependencies**: VS Code Extension API (@types/vscode), Node.js file system APIs, path utilities
+**Storage**: File system templates directory (default: %localappdata%\Microsoft\PowerToys\NewPlus\Templates)
+**Testing**: VS Code Extension Test Runner with Mocha framework
+**Target Platform**: VS Code 1.74+ on Windows, macOS, and Linux
+**Project Type**: single - VS Code extension project structure
+**Performance Goals**: Context menu activation <500ms, template copying <2s for 10MB files, startup impact <100ms
+**Constraints**: Must maintain PowerToys NewPlus parity, VS Code API limitations, cross-platform file operations
+**Scale/Scope**: Single user extension, template discovery from configured directory, contributes.menus integration
 
 ## Constitution Check
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-- [ ] **PowerToys NewPlus Parity**: Feature maintains full compatibility with PowerToys NewPlus functionality
-- [ ] **VS Code File Explorer Integration**: Seamless integration with native file explorer and context menus
-- [ ] **Test-Driven Development**: Test strategy documented (Unit → Integration → Implementation)
-- [ ] **Template Management Fidelity**: Uses PowerToys template directory and processing logic
-- [ ] **VS Code Extension Standards**: Follows VS Code API best practices and marketplace guidelines
+- [x] **PowerToys NewPlus Parity**: Feature maintains full compatibility with PowerToys NewPlus functionality
+- [x] **VS Code File Explorer Integration**: Seamless integration with native file explorer and context menus
+- [x] **Test-Driven Development**: Test strategy documented (Unit → Integration → Implementation)
+- [x] **Template Management Fidelity**: Uses PowerToys template directory and processing logic
+- [x] **VS Code Extension Standards**: Follows VS Code API best practices and marketplace guidelines
 
 ## Project Structure
 
@@ -67,50 +67,45 @@ specs/[###-feature]/
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 ```
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
 src/
-├── models/
+├── extension.ts         # Extension entry point (activate/deactivate)
+├── commands/
+│   ├── newFromTemplate.ts    # Main command implementation
+│   └── openTemplatesFolder.ts # Template folder command
 ├── services/
-├── cli/
-└── lib/
+│   ├── templateService.ts    # Template discovery and management
+│   ├── variableService.ts    # Variable substitution logic
+│   └── configService.ts      # Configuration management
+├── models/
+│   ├── template.ts          # Template entity definition
+│   └── configuration.ts     # Configuration schema
+└── utils/
+    ├── fileUtils.ts         # File system operations
+    └── pathUtils.ts         # Path manipulation utilities
 
 tests/
-├── contract/
-├── integration/
-└── unit/
+├── extension.test.ts        # Extension activation tests
+├── commands/
+│   ├── newFromTemplate.test.ts
+│   └── openTemplatesFolder.test.ts
+├── services/
+│   ├── templateService.test.ts
+│   ├── variableService.test.ts
+│   └── configService.test.ts
+└── integration/
+    └── e2e.test.ts         # End-to-end workflow tests
 
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+package.json                # Extension manifest with contributes.menus
+tsconfig.json              # TypeScript configuration
+.vscode/
+├── launch.json            # Debug configuration
+└── settings.json          # Workspace settings
+.eslintrc.json            # ESLint configuration
+.prettierrc               # Prettier configuration
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Selected VS Code extension structure using TypeScript. The extension follows standard VS Code extension patterns with src/ for source code, proper separation of concerns (commands, services, models, utils), comprehensive test coverage, and proper configuration files. This aligns with the constitutional requirement for TypeScript and VS Code extension standards.
 
 ## Phase 0: Outline & Research
 1. **Extract unknowns from Technical Context** above:
@@ -172,17 +167,19 @@ directories captured above]
 **Task Generation Strategy**:
 - Load `.specify/templates/tasks-template.md` as base
 - Generate tasks from Phase 1 design docs (contracts, data model, quickstart)
-- Each contract → contract test task [P]
-- Each entity → model creation task [P] 
-- Each user story → integration test task
-- Implementation tasks to make tests pass
+- Extension manifest setup → package.json configuration task
+- Each service contract → service implementation task [P]
+- Each command contract → command implementation task [P]
+- Integration tests from quickstart scenarios
+- Performance validation tasks
 
 **Ordering Strategy**:
-- TDD order: Tests before implementation 
-- Dependency order: Models before services before UI
-- Mark [P] for parallel execution (independent files)
+- TDD order: Tests before implementation
+- Dependency order: Core services before commands before integration
+- VS Code extension structure: manifest setup before code implementation
+- Mark [P] for parallel execution (independent services/commands)
 
-**Estimated Output**: 25-30 numbered, ordered tasks in tasks.md
+**Estimated Output**: 20-25 numbered, ordered tasks in tasks.md
 
 **IMPORTANT**: This phase is executed by the /tasks command, NOT by /plan
 
@@ -206,18 +203,18 @@ directories captured above]
 *This checklist is updated during execution flow*
 
 **Phase Status**:
-- [ ] Phase 0: Research complete (/plan command)
-- [ ] Phase 1: Design complete (/plan command)
-- [ ] Phase 2: Task planning complete (/plan command - describe approach only)
+- [x] Phase 0: Research complete (/plan command)
+- [x] Phase 1: Design complete (/plan command)
+- [x] Phase 2: Task planning complete (/plan command - describe approach only)
 - [ ] Phase 3: Tasks generated (/tasks command)
 - [ ] Phase 4: Implementation complete
 - [ ] Phase 5: Validation passed
 
 **Gate Status**:
-- [ ] Initial Constitution Check: PASS
-- [ ] Post-Design Constitution Check: PASS
-- [ ] All NEEDS CLARIFICATION resolved
-- [ ] Complexity deviations documented
+- [x] Initial Constitution Check: PASS
+- [x] Post-Design Constitution Check: PASS
+- [x] All NEEDS CLARIFICATION resolved
+- [x] Complexity deviations documented
 
 ---
-*Based on Constitution v2.1.1 - See `/memory/constitution.md`*
+*Based on Constitution v1.0.0 - See `/memory/constitution.md`*

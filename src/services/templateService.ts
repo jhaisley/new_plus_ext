@@ -264,8 +264,8 @@ export class TemplateService {
   private async directoryExists(dirPath: string): Promise<boolean> {
     try {
       console.log(`TemplateService: Checking if directory exists: ${dirPath}`);
-      const stat = await fs.stat(dirPath);
-      const exists = stat.isDirectory();
+      const stat = await vscode.workspace.fs.stat(vscode.Uri.file(dirPath));
+      const exists = (stat.type & vscode.FileType.Directory) !== 0;
       console.log(`TemplateService: Directory exists: ${exists}`);
       return exists;
     } catch (error) {

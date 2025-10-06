@@ -300,16 +300,23 @@ export class TemplateService {
     const templateDirs: string[] = [];
     
     try {
+      console.log(`TemplateService: Reading directory: ${basePath}`);
       const entries = await fs.readdir(basePath, { withFileTypes: true });
+      console.log(`TemplateService: Found ${entries.length} entries in directory`);
       
       for (const entry of entries) {
+        console.log(`TemplateService: Checking entry: ${entry.name}, isDirectory: ${entry.isDirectory()}`);
         if (entry.isDirectory()) {
           const fullPath = path.join(basePath, entry.name);
           
           // Check if this directory contains a template.json file
           const templateJsonPath = path.join(fullPath, 'template.json');
+          console.log(`TemplateService: Checking for template.json at: ${templateJsonPath}`);
           if (await this.fileExists(templateJsonPath)) {
+            console.log(`TemplateService: Found template directory: ${fullPath}`);
             templateDirs.push(fullPath);
+          } else {
+            console.log(`TemplateService: No template.json found in: ${fullPath}`);
           }
           
           // Recursively search subdirectories if enabled

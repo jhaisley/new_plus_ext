@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { Template, TemplateCreationResult, TemplateVariable } from '../models/template';
+import { Template, TemplateCreationResult } from '../models/template';
 import { TemplateService } from '../services/templateService';
 import { VariableService } from '../services/variableService';
 import { WorkspaceIntegration } from '../utils/workspaceIntegration';
@@ -55,22 +55,20 @@ export class NewFromTemplateCommand {
         }
       }
       
-      // Check if URI points to a file or folder
+      // Check if URI points to a file or folder - FIX: await the stat call
       try {
-        const stat = vscode.workspace.fs.stat(uri);
-        stat.then(s => {
-          context.isFile = (s.type & vscode.FileType.File) !== 0;
-          context.isFolder = (s.type & vscode.FileType.Directory) !== 0;
-          
-          // Set context type for template filtering
-          if (context.isFolder) {
-            context.type = 'folder';
-          } else if (context.isFile) {
-            // If it's a file, user probably wants to create in the same directory
-            context.targetPath = path.dirname(uri.fsPath);
-            context.type = 'file';
-          }
-        });
+        const stat = await vscode.workspace.fs.stat(uri);
+        context.isFile = (stat.type & vscode.FileType.File) !== 0;
+        context.isFolder = (stat.type & vscode.FileType.Directory) !== 0;
+        
+        // Set context type for template filtering
+        if (context.isFolder) {
+          context.type = 'folder';
+        } else if (context.isFile) {
+          // If it's a file, user probably wants to create in the same directory
+          context.targetPath = path.dirname(uri.fsPath);
+          context.type = 'file';
+        }
       } catch {
         // Assume it's a folder if we can't determine
         context.type = 'folder';
@@ -142,6 +140,9 @@ export class NewFromTemplateCommand {
       if (!variables) {
         return undefined; // User cancelled
       }
+
+      // Load template content now (lazy loading)
+      await this.templateService.loadTemplateContent(selectedTemplate);
 
       // Prompt for name with context-aware suggestions
       const name = await this.promptForNameWithContext(selectedTemplate, context);
@@ -283,7 +284,7 @@ export class NewFromTemplateCommand {
         items.push({
           label: `$(file) ${template.name}`,
           description: template.description,
-          detail: template.category || 'File template',
+          detail: 'File template',
           template
         });
       }
@@ -299,7 +300,7 @@ export class NewFromTemplateCommand {
         items.push({
           label: `$(folder) ${template.name}`,
           description: template.description,
-          detail: template.category || 'Folder template',
+          detail: 'Folder template',
           template
         });
       }
@@ -359,32 +360,10 @@ export class NewFromTemplateCommand {
       variables.set('TARGET_PATH', context.targetPath);
     }
 
-    // Collect custom template variables
-    for (const variable of template.variables) {
-      const value = await this.promptForVariable(variable);
-      if (value === undefined) {
-        return undefined; // User cancelled
-      }
-      variables.set(variable.name, value);
-    }
+    // Note: Template.variables is always empty (not implemented)
+    // No custom variable prompting needed
 
     return variables;
-  }
-
-  /**
-   * Prompt user for variable value
-   */
-  public async promptForVariable(variable: TemplateVariable): Promise<string | undefined> {
-    const options: vscode.InputBoxOptions = {
-      prompt: variable.prompt,
-      value: variable.defaultValue,
-      placeHolder: variable.defaultValue || `Enter ${variable.name}`,
-      validateInput: (value: string) => {
-        return this.variableService.validateVariableValue(variable, value);
-      }
-    };
-
-    return await vscode.window.showInputBox(options);
   }
 
   /**

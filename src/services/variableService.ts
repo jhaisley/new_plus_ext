@@ -1,5 +1,3 @@
-import { TemplateVariable } from '../models/template';
-
 /**
  * Service for processing template variables and substitutions
  */
@@ -89,93 +87,10 @@ export class VariableService {
   }
 
   /**
-   * Validate variable names against template content
-   */
-  public validateVariables(templateContent: string, variables: TemplateVariable[]): string[] {
-    const errors: string[] = [];
-    const extractedVars = this.extractVariables(templateContent);
-    const definedVars = new Set(variables.map(v => v.name));
-    
-    // Check for undefined variables in template
-    for (const varName of extractedVars) {
-      if (!definedVars.has(varName)) {
-        errors.push(`Variable '${varName}' used in template but not defined`);
-      }
-    }
-    
-    // Check for unused variable definitions
-    for (const variable of variables) {
-      if (!extractedVars.includes(variable.name)) {
-        errors.push(`Variable '${variable.name}' defined but not used in template`);
-      }
-    }
-    
-    return errors;
-  }
-
-  /**
    * Process variables in file path (for dynamic file naming)
    */
   public processPath(filePath: string, variables: Map<string, string>): string {
     return this.processTemplate(filePath, variables);
-  }
-
-  /**
-   * Validate variable value against its definition
-   */
-  public validateVariableValue(variable: TemplateVariable, value: string): string | undefined {
-    // Check if required variable is empty
-    if (variable.required && (!value || value.trim() === '')) {
-      return `${variable.name} is required`;
-    }
-    
-    // Check regex validation if provided
-    if (variable.validation && value) {
-      try {
-        const regex = new RegExp(variable.validation);
-        if (!regex.test(value)) {
-          return variable.validationMessage || `${variable.name} does not match required pattern`;
-        }
-      } catch (error) {
-        console.warn(`Invalid regex pattern for variable ${variable.name}:`, error);
-      }
-    }
-    
-    // Type-specific validation
-    if (variable.type && value) {
-      switch (variable.type) {
-        case 'number':
-          if (isNaN(Number(value))) {
-            return `${variable.name} must be a number`;
-          }
-          break;
-        case 'boolean':
-          if (!['true', 'false', '1', '0'].includes(value.toLowerCase())) {
-            return `${variable.name} must be true or false`;
-          }
-          break;
-        case 'choice':
-          if (variable.choices && !variable.choices.includes(value)) {
-            return `${variable.name} must be one of: ${variable.choices.join(', ')}`;
-          }
-          break;
-      }
-    }
-    
-    return undefined; // No validation errors
-  }
-
-  /**
-   * Get default value for a variable
-   */
-  public getDefaultValue(variable: TemplateVariable, globalVariables: Record<string, string> = {}): string {
-    // Check if there's a global variable with this name
-    if (globalVariables[variable.name]) {
-      return globalVariables[variable.name];
-    }
-    
-    // Use variable's default value
-    return variable.defaultValue || '';
   }
 
   /**

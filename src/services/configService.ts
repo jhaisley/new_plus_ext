@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as os from 'os';
-import { Configuration, DEFAULT_CONFIGURATION, CONFIGURATION_SCHEMA, ConfigurationValidationResult, ConfigurationExport } from '../models/configuration';
+import { Configuration, DEFAULT_CONFIGURATION } from '../models/configuration';
+import { PathUtils } from '../utils/index';
 
 /**
  * Service for managing extension configuration
@@ -33,32 +34,16 @@ export class ConfigService {
       
       // Get configuration values with defaults
       const configuration: Configuration = {
-        templatesPath: this.expandEnvironmentVariables(
+        templatesPath: PathUtils.expandEnvironmentVariables(
           config.get<string>('templatesPath') || this.getDefaultTemplatesPath()
         ),
-        showQuickPick: config.get<boolean>('showQuickPick', DEFAULT_CONFIGURATION.showQuickPick),
-        createSubfolders: config.get<boolean>('createSubfolders', DEFAULT_CONFIGURATION.createSubfolders),
-        variables: this.mergeVariables(config),
-        enableCaching: config.get<boolean>('enableCaching', DEFAULT_CONFIGURATION.enableCaching!),
-        cacheTimeout: config.get<number>('cacheTimeout', DEFAULT_CONFIGURATION.cacheTimeout!),
-        watchForChanges: config.get<boolean>('watchForChanges', DEFAULT_CONFIGURATION.watchForChanges!),
-        excludePatterns: config.get<string[]>('excludePatterns', DEFAULT_CONFIGURATION.excludePatterns!),
-        maxRecentTemplates: config.get<number>('maxRecentTemplates', DEFAULT_CONFIGURATION.maxRecentTemplates!),
-        showProgress: config.get<boolean>('showProgress', DEFAULT_CONFIGURATION.showProgress!),
-        defaultEncoding: config.get<string>('defaultEncoding', DEFAULT_CONFIGURATION.defaultEncoding!),
-        openAfterCreation: config.get<boolean>('openAfterCreation', DEFAULT_CONFIGURATION.openAfterCreation!)
+        hideFileExtensions: config.get<boolean>('display.hideFileExtensions', DEFAULT_CONFIGURATION.hideFileExtensions),
+        hideSortingPrefix: config.get<boolean>('display.hideSortingPrefix', DEFAULT_CONFIGURATION.hideSortingPrefix),
+        replaceVariablesInFilename: config.get<boolean>('behavior.replaceVariablesInFilename', DEFAULT_CONFIGURATION.replaceVariablesInFilename)
       };
 
       // Resolve relative paths
       configuration.templatesPath = this.resolveTemplatePath(configuration.templatesPath);
-      
-      // Validate configuration
-      const validation = this.validateConfiguration(configuration);
-      if (!validation.isValid) {
-        console.warn('Invalid configuration detected:', validation.errors);
-        // Fall back to defaults for invalid values
-        configuration.templatesPath = this.getDefaultTemplatesPath();
-      }
 
       this.cachedConfiguration = configuration;
       return configuration;
@@ -105,114 +90,12 @@ export class ConfigService {
   }
 
   /**
-   * Validate configuration object
-   */
-  public validateConfiguration(config: any): ConfigurationValidationResult {
-    const errors: string[] = [];
-    const warnings: string[] = [];
-
-    // Check required properties
-    if (!config.templatesPath || typeof config.templatesPath !== 'string') {
-      errors.push('templatesPath is required and must be a string');
-    }
-    
-    if (typeof config.showQuickPick !== 'boolean') {
-      errors.push('showQuickPick must be a boolean');
-    }
-    
-    if (typeof config.createSubfolders !== 'boolean') {
-      errors.push('createSubfolders must be a boolean');
-    }
-    
-    if (!config.variables || typeof config.variables !== 'object') {
-      errors.push('variables must be an object');
-    }
-
-    // Check optional properties
-    if (config.cacheTimeout !== undefined && (typeof config.cacheTimeout !== 'number' || config.cacheTimeout < 0)) {
-      errors.push('cacheTimeout must be a non-negative number');
-    }
-    
-    if (config.maxRecentTemplates !== undefined && 
-        (typeof config.maxRecentTemplates !== 'number' || config.maxRecentTemplates < 1 || config.maxRecentTemplates > 50)) {
-      errors.push('maxRecentTemplates must be a number between 1 and 50');
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors,
-      warnings
-    };
-  }
-
-  /**
-   * Export configuration to JSON string
-   */
-  public async exportConfiguration(config?: Configuration): Promise<string> {
-    const configToExport = config || await this.getConfiguration();
-    const exportData: ConfigurationExport = {
-      version: '1.0.0',
-      exportedAt: new Date(),
-      configuration: configToExport,
-      metadata: {
-        platform: process.platform,
-        vscodeVersion: vscode.version
-      }
-    };
-    
-    return JSON.stringify(exportData, null, 2);
-  }
-
-  /**
-   * Import configuration from JSON string
-   */
-  public async importConfiguration(jsonString: string): Promise<Configuration> {
-    try {
-      const exportData: ConfigurationExport = JSON.parse(jsonString);
-      const config = exportData.configuration;
-      
-      // Validate imported configuration
-      const validation = this.validateConfiguration(config);
-      if (!validation.isValid) {
-        throw new Error(`Invalid configuration: ${validation.errors.join(', ')}`);
-      }
-      
-      return config;
-    } catch (error) {
-      throw new Error(`Failed to import configuration: ${error}`);
-    }
-  }
-
-  /**
    * Get default configuration for specified platform
    */
   public getDefaultConfiguration(platform: string = process.platform): Configuration {
     const defaultConfig = { ...DEFAULT_CONFIGURATION };
     defaultConfig.templatesPath = this.getDefaultTemplatesPath(platform);
     return defaultConfig;
-  }
-
-  /**
-   * Expand environment variables in path
-   */
-  public expandEnvironmentVariables(path: string): string {
-    if (!path) {return path;}
-    
-    // Windows style environment variables
-    path = path.replace(/%([^%]+)%/g, (match, varName) => {
-      return process.env[varName] || match;
-    });
-    
-    // Unix style environment variables
-    path = path.replace(/\$\{([^}]+)\}/g, (match, varName) => {
-      return process.env[varName] || match;
-    });
-    
-    path = path.replace(/\$([A-Z_][A-Z0-9_]*)/g, (match, varName) => {
-      return process.env[varName] || match;
-    });
-    
-    return path;
   }
 
   /**
@@ -268,16 +151,5 @@ export class ConfigService {
     
     // Fall back to home directory
     return path.resolve(os.homedir(), templatePath);
-  }
-
-  /**
-   * Merge global and workspace variables
-   */
-  private mergeVariables(config: vscode.WorkspaceConfiguration): Record<string, string> {
-    const globalVars = config.inspect<Record<string, string>>('variables')?.globalValue || {};
-    const workspaceVars = config.inspect<Record<string, string>>('variables')?.workspaceValue || {};
-    
-    // Workspace variables override global variables
-    return { ...globalVars, ...workspaceVars };
   }
 }

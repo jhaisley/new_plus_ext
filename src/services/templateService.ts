@@ -7,16 +7,9 @@ import { ConfigService } from './configService';
  * Service for discovering and managing templates
  */
 export class TemplateService {
-  private static readonly cacheValidityMs = 5 * 60 * 1000; // 5 minutes
-  private static readonly maxCacheSize = 100; // Maximum number of cached template sets
-  private static readonly lazyLoadThreshold = 50; // Load templates lazily if more than this number
   private templates: Template[] = [];
-  private templatesCache: Map<string, Template[]> = new Map();
   private recentTemplates: string[] = [];
   private fileWatcher: vscode.FileSystemWatcher | null = null;
-  private lastDiscoveryTime: number = 0;
-  private isLazyLoadingEnabled = true;
-  private templateContentCache: Map<string, string> = new Map();
 
   constructor(private configService: ConfigService) {}
 
@@ -24,11 +17,7 @@ export class TemplateService {
    * Initialize the template service
    */
   public async initialize(): Promise<void> {
-    const config = await this.configService.getConfiguration();
-    
-    if (config.watchForChanges) {
-      await this.setupFileWatcher();
-    }
+    await this.setupFileWatcher();
     
     // Initial template discovery
     await this.discoverTemplates();
@@ -43,49 +32,24 @@ export class TemplateService {
       const templatesPath = config.templatesPath;
       console.log(`TemplateService: Discovering templates in: ${templatesPath}`);
       
-      // Check cache validity
-      const cacheKey = this.createCacheKey(templatesPath, options);
-      if (config.enableCaching && this.isCacheValid(cacheKey)) {
-        console.log('TemplateService: Using cached templates');
-        return this.templatesCache.get(cacheKey) || [];
-      }
-      
       // Check if templates directory exists
-      console.log('TemplateService: Checking if directory exists...');
       if (!await this.directoryExists(templatesPath)) {
         console.warn(`Templates directory does not exist: ${templatesPath}`);
         return [];
       }
-      console.log('TemplateService: Directory exists, finding template directories...');
       
-      const discoveredTemplates: Template[] = [];
       const templateDirs = await this.findTemplateDirectories(templatesPath, options);
       console.log(`TemplateService: Found ${templateDirs.length} template directories:`, templateDirs);
       
-      for (const templateDir of templateDirs) {
-        try {
-          console.log(`TemplateService: Loading template from: ${templateDir}`);
-          const template = await this.loadTemplate(templateDir);
-          if (template) {
-            discoveredTemplates.push(template);
-            console.log(`TemplateService: Successfully loaded template: ${template.name}`);
-          } else {
-            console.warn(`TemplateService: Failed to load template from: ${templateDir}`);
-          }
-        } catch (error) {
-          console.warn(`Failed to load template from ${templateDir}:`, error);
-        }
-      }
+      // Load all templates in parallel for speed
+      const templatePromises = templateDirs.map(templateDir => this.loadTemplate(templateDir));
+      const loadedTemplates = await Promise.all(templatePromises);
+      
+      const discoveredTemplates = loadedTemplates
+        .filter(template => template !== null) as Template[];
       
       // Sort templates by name
       discoveredTemplates.sort((a, b) => a.name.localeCompare(b.name));
-      
-      // Cache the results
-      if (config.enableCaching) {
-        this.templatesCache.set(cacheKey, discoveredTemplates);
-        this.lastDiscoveryTime = Date.now();
-        this.cleanupCache(); // Prevent memory leaks
-      }
       
       this.templates = discoveredTemplates;
       return discoveredTemplates;
@@ -99,21 +63,12 @@ export class TemplateService {
    * Get all available templates
    */
   public async getTemplates(options?: TemplateDiscoveryOptions): Promise<Template[]> {
-    console.log('TemplateService: getTemplates called');
-    const config = await this.configService.getConfiguration();
-    const templatesPath = config.templatesPath;
-    const cacheKey = this.createCacheKey(templatesPath, options);
-    
-    // Use cache if valid
-    if (config.enableCaching && this.templates.length > 0 && this.isCacheValid(cacheKey)) {
-      console.log('TemplateService: Returning cached templates');
-      return this.filterTemplates(this.templates, options);
+    // Simple approach - always return current templates, refresh when needed
+    if (this.templates.length === 0) {
+      await this.discoverTemplates(options);
     }
     
-    // Discover templates
-    console.log('TemplateService: Calling discoverTemplates...');
-    const templates = await this.discoverTemplates(options);
-    return this.filterTemplates(templates, options);
+    return this.filterTemplates(this.templates, options);
   }
 
   /**
@@ -127,8 +82,7 @@ export class TemplateService {
    * Add template to recently used list
    */
   public async addToRecentlyUsed(templateName: string): Promise<void> {
-    const config = await this.configService.getConfiguration();
-    const maxRecent = config.maxRecentTemplates || 10;
+    const maxRecent = 10;
     
     // Remove if already exists
     const index = this.recentTemplates.indexOf(templateName);
@@ -142,6 +96,22 @@ export class TemplateService {
     // Limit size
     if (this.recentTemplates.length > maxRecent) {
       this.recentTemplates = this.recentTemplates.slice(0, maxRecent);
+    }
+  }
+
+  /**
+   * Load template content for a specific template (lazy loading)
+   */
+  public async loadTemplateContent(template: Template): Promise<void> {
+    if (template.files.length > 0 && template.files[0].content) {
+      return; // Already loaded
+    }
+
+    try {
+      const isFile = template.type === 'file';
+      template.files = await this.loadTemplateFiles(template.path, isFile);
+    } catch (error) {
+      console.warn(`Failed to load template content for ${template.name}:`, error);
     }
   }
 
@@ -174,15 +144,9 @@ export class TemplateService {
       errors.push('Template name contains invalid characters');
     }
     
-    // Check files array - for NewPlus style, files can be empty (folder templates)
+    // Check files array
     if (!Array.isArray(template.files)) {
       errors.push('Template must have a files array');
-    }
-    // Note: Empty files array is OK for NewPlus - it just means copy the directory structure
-    
-    // Check variables array
-    if (template.variables && !Array.isArray(template.variables)) {
-      errors.push('Template variables must be an array');
     }
     
     return {
@@ -193,35 +157,9 @@ export class TemplateService {
   }
 
   /**
-   * Clean up old cache entries to prevent memory leaks
-   */
-  private cleanupCache(): void {
-    if (this.templatesCache.size > TemplateService.maxCacheSize) {
-      // Remove oldest entries (simple FIFO cleanup)
-      const entriesToRemove = this.templatesCache.size - TemplateService.maxCacheSize;
-      const keys = Array.from(this.templatesCache.keys());
-      for (let i = 0; i < entriesToRemove; i++) {
-        this.templatesCache.delete(keys[i]);
-      }
-    }
-    
-    // Clean template content cache as well
-    if (this.templateContentCache.size > TemplateService.maxCacheSize) {
-      const entriesToRemove = this.templateContentCache.size - TemplateService.maxCacheSize;
-      const keys = Array.from(this.templateContentCache.keys());
-      for (let i = 0; i < entriesToRemove; i++) {
-        this.templateContentCache.delete(keys[i]);
-      }
-    }
-  }
-
-  /**
-   * Refresh templates cache
+   * Refresh templates
    */
   public async refreshTemplates(): Promise<void> {
-    this.templatesCache.clear();
-    this.templateContentCache.clear();
-    this.lastDiscoveryTime = 0;
     await this.discoverTemplates();
   }
 
@@ -240,7 +178,7 @@ export class TemplateService {
       this.fileWatcher.dispose();
       this.fileWatcher = null;
     }
-    this.templatesCache.clear();
+    this.templates = [];
   }
 
   /**
@@ -266,34 +204,11 @@ export class TemplateService {
    */
   private async directoryExists(dirPath: string): Promise<boolean> {
     try {
-      console.log(`TemplateService: Checking if directory exists: ${dirPath}`);
       const stat = await vscode.workspace.fs.stat(vscode.Uri.file(dirPath));
-      const exists = (stat.type & vscode.FileType.Directory) !== 0;
-      console.log(`TemplateService: Directory exists: ${exists}`);
-      return exists;
-    } catch (error) {
-      console.log(`TemplateService: Directory check failed:`, error);
+      return (stat.type & vscode.FileType.Directory) !== 0;
+    } catch {
       return false;
     }
-  }
-
-  /**
-   * Check if cache is valid
-   */
-  private isCacheValid(cacheKey?: string): boolean {
-    if (cacheKey && !this.templatesCache.has(cacheKey)) {
-      return false;
-    }
-    
-    return Date.now() - this.lastDiscoveryTime < TemplateService.cacheValidityMs;
-  }
-
-  /**
-   * Create cache key for discovery options
-   */
-  private createCacheKey(templatesPath: string, options?: TemplateDiscoveryOptions): string {
-    const optionsStr = options ? JSON.stringify(options) : '';
-    return `${templatesPath}|${optionsStr}`;
   }
 
   /**
@@ -303,10 +218,8 @@ export class TemplateService {
     const templateDirs: string[] = [];
     
     try {
-      console.log(`TemplateService: Reading directory: ${basePath}`);
       const baseUri = vscode.Uri.file(basePath);
       const entries = await vscode.workspace.fs.readDirectory(baseUri);
-      console.log(`TemplateService: Found ${entries.length} entries in directory`);
       
       for (const [name, type] of entries) {
         // Skip template.json metadata files
@@ -314,12 +227,9 @@ export class TemplateService {
           continue;
         }
         
-        console.log(`TemplateService: Checking entry: ${name}, type: ${type}`);
-        
         // Only add top-level items (files or directories)
         if (type === vscode.FileType.Directory || type === vscode.FileType.File) {
           const fullPath = path.join(basePath, name);
-          console.log(`TemplateService: Found template: ${fullPath}`);
           templateDirs.push(fullPath);
         }
       }
@@ -331,13 +241,12 @@ export class TemplateService {
   }
 
   /**
-   * Load template from directory
+   * Load template metadata (without file content - lazy loaded later)
    */
   private async loadTemplate(templatePath: string): Promise<Template | null> {
     try {
       const stat = await vscode.workspace.fs.stat(vscode.Uri.file(templatePath));
       const isFile = (stat.type & vscode.FileType.File) !== 0;
-      const isDirectory = (stat.type & vscode.FileType.Directory) !== 0;
       
       let templateName = path.basename(templatePath);
       let templateType: 'file' | 'folder' = isFile ? 'file' : 'folder';
@@ -347,25 +256,14 @@ export class TemplateService {
         templateName = path.basename(templatePath, path.extname(templatePath));
       }
       
-      console.log(`TemplateService: Loading files for template: ${templateName}`);
-      const files = await this.loadTemplateFiles(templatePath, isFile);
-      console.log(`TemplateService: Loaded ${files.length} files for template: ${templateName}`);
-      
       const template: Template = {
         name: templateName,
         description: `Template: ${templateName}`,
         type: templateType,
         path: templatePath,
-        files,
-        variables: [],
-        category: 'General',
-        tags: [],
-        version: '1.0.0',
-        createdAt: new Date(),
-        modifiedAt: new Date()
+        files: []  // Empty - will be lazy loaded when actually used
       };
       
-      console.log(`TemplateService: Template loaded successfully: ${templateName}`);
       return template;
     } catch (error) {
       console.warn(`Failed to load template from ${templatePath}:`, error);
@@ -438,10 +336,12 @@ export class TemplateService {
   }
 
   /**
-   * Load template content lazily when needed
+   * Filter templates by options
    */
   private filterTemplates(templates: Template[], options?: TemplateDiscoveryOptions): Template[] {
-    if (!options) {return templates;}
+    if (!options) {
+      return templates;
+    }
     
     let filtered = templates;
     
@@ -449,46 +349,6 @@ export class TemplateService {
       filtered = filtered.filter(t => t.type === options.type);
     }
     
-    if (options.category) {
-      filtered = filtered.filter(t => t.category === options.category);
-    }
-    
-    if (options.tags && options.tags.length > 0) {
-      filtered = filtered.filter(t => 
-        t.tags && options.tags!.some(tag => t.tags!.includes(tag))
-      );
-    }
-    
     return filtered;
-  }
-
-  /**
-   * Load template content lazily when needed
-   */
-  private async loadTemplateContentLazily(template: Template): Promise<void> {
-    if (template.files.length === 0 || template.files[0].content) {
-      return; // Already loaded or no files
-    }
-    
-    const cacheKey = `${template.path}_content`;
-    if (this.templateContentCache.has(cacheKey)) {
-      template.files[0].content = this.templateContentCache.get(cacheKey)!;
-      return;
-    }
-    
-    try {
-      // Load the first file's content for preview purposes
-      const firstFile = template.files[0];
-      const fullPath = path.join(template.path, firstFile.relativePath);
-      const fileUri = vscode.Uri.file(fullPath);
-      const fileData = await vscode.workspace.fs.readFile(fileUri);
-      const content = new TextDecoder().decode(fileData);
-      
-      firstFile.content = content;
-      this.templateContentCache.set(cacheKey, content);
-    } catch (error) {
-      console.warn(`Failed to load template content for ${template.name}:`, error);
-      template.files[0].content = ''; // Fallback to empty content
-    }
   }
 }

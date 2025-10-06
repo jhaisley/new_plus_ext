@@ -242,7 +242,9 @@ export class ConfigService {
   private getDefaultTemplatesPath(platform: string = process.platform): string {
     switch (platform) {
       case 'win32':
-        return path.join(os.homedir(), 'Documents', 'VSCode Templates');
+        // Use PowerToys NewPlus default location on Windows
+        const localAppData = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
+        return path.join(localAppData, 'Microsoft', 'PowerToys', 'NewPlus', 'Templates');
       case 'darwin':
         return path.join(os.homedir(), 'Documents', 'VSCode Templates');
       default: // linux and others

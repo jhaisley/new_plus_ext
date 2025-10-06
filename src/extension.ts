@@ -43,8 +43,8 @@ export class ExtensionContext {
       workspaceIntegration = new WorkspaceIntegration();
 
       // Initialize commands
-      newFromTemplateCommand = new NewFromTemplateCommand(templateService, variableService, workspaceIntegration);
-      openTemplatesFolderCommand = new OpenTemplatesFolderCommand();
+      newFromTemplateCommand = new NewFromTemplateCommand(templateService, variableService, workspaceIntegration, configService);
+      openTemplatesFolderCommand = new OpenTemplatesFolderCommand(configService);
 
       // Register commands
       const disposables = [

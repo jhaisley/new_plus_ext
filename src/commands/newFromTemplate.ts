@@ -6,6 +6,7 @@ import { VariableService } from '../services/variableService';
 import { WorkspaceIntegration } from '../utils/workspaceIntegration';
 import { ContextMenuIntegration } from '../utils/contextMenuIntegration';
 import { ErrorHandler, ErrorType, NewPlusError } from '../utils/errorHandler';
+import { ConfigService } from '../services/configService';
 
 /**
  * Command for creating files/folders from templates
@@ -14,7 +15,8 @@ export class NewFromTemplateCommand {
   constructor(
     private templateService: TemplateService,
     private variableService: VariableService,
-    private workspaceIntegration?: WorkspaceIntegration
+    private workspaceIntegration?: WorkspaceIntegration,
+    private configService?: ConfigService
   ) {}
 
   /**
@@ -89,14 +91,26 @@ export class NewFromTemplateCommand {
       // Get available templates
       const templates = await this.templateService.getTemplates();
       if (templates.length === 0) {
+        // Get the actual path being used for better error message
+        let templatesPath = 'templates directory';
+        if (this.configService) {
+          try {
+            const config = await this.configService.getConfiguration();
+            templatesPath = config.templatesPath;
+          } catch {
+            // Fallback if config access fails
+          }
+        }
+        
         throw new NewPlusError(
           ErrorType.TEMPLATE_NOT_FOUND,
-          'No templates found in the templates directory',
+          `No templates found in the templates directory: ${templatesPath}`,
           'No templates available to create from',
           [
-            'Check if the templates directory exists',
+            `Check if the templates directory exists: ${templatesPath}`,
             'Add template files to the templates folder',
-            'Verify the templates path in settings'
+            'Verify the templates path in settings',
+            'Use "New from Template: Open Templates Folder" to access the folder'
           ]
         );
       }

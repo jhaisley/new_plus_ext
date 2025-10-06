@@ -66,11 +66,18 @@ export class TemplateService {
         try {
           console.log(`TemplateService: Loading template from: ${templateDir}`);
           const template = await this.loadTemplate(templateDir);
-          if (template && this.validateTemplate(template).isValid) {
-            discoveredTemplates.push(template);
-            console.log(`TemplateService: Successfully loaded template: ${template.name}`);
+          if (template) {
+            console.log(`TemplateService: Template loaded, validating: ${template.name}`);
+            const validation = this.validateTemplate(template);
+            console.log(`TemplateService: Validation result:`, validation);
+            if (validation.isValid) {
+              discoveredTemplates.push(template);
+              console.log(`TemplateService: Successfully loaded template: ${template.name}`);
+            } else {
+              console.warn(`TemplateService: Template validation failed for: ${templateDir}`, validation.errors);
+            }
           } else {
-            console.warn(`TemplateService: Template validation failed for: ${templateDir}`);
+            console.warn(`TemplateService: Failed to load template from: ${templateDir}`);
           }
         } catch (error) {
           console.warn(`Failed to load template from ${templateDir}:`, error);
@@ -99,14 +106,19 @@ export class TemplateService {
    * Get all available templates
    */
   public async getTemplates(options?: TemplateDiscoveryOptions): Promise<Template[]> {
+    console.log('TemplateService: getTemplates called');
     const config = await this.configService.getConfiguration();
+    const templatesPath = config.templatesPath;
+    const cacheKey = this.createCacheKey(templatesPath, options);
     
     // Use cache if valid
-    if (config.enableCaching && this.templates.length > 0 && this.isCacheValid()) {
+    if (config.enableCaching && this.templates.length > 0 && this.isCacheValid(cacheKey)) {
+      console.log('TemplateService: Returning cached templates');
       return this.filterTemplates(this.templates, options);
     }
     
     // Discover templates
+    console.log('TemplateService: Calling discoverTemplates...');
     const templates = await this.discoverTemplates(options);
     return this.filterTemplates(templates, options);
   }

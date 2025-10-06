@@ -27,7 +27,8 @@ export class ExtensionContext {
    * Activate the extension
    */
   public static async activate(context: vscode.ExtensionContext): Promise<void> {
-    console.log('NewPlus extension is being activated...');
+    const packageJson = require('../package.json');
+    console.log(`NewPlus extension v${packageJson.version} is being activated...`);
 
     try {
       // Initialize services
@@ -59,7 +60,7 @@ export class ExtensionContext {
       // Add disposables to context
       context.subscriptions.push(...disposables);
 
-      console.log('NewPlus extension activated successfully!');
+      console.log(`NewPlus extension v${packageJson.version} activated successfully!`);
     } catch (error) {
       console.error('Failed to activate NewPlus extension:', error);
       vscode.window.showErrorMessage(`Failed to activate NewPlus extension: ${error}`);

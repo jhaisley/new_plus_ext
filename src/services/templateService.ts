@@ -42,27 +42,36 @@ export class TemplateService {
     try {
       const config = await this.configService.getConfiguration();
       const templatesPath = config.templatesPath;
+      console.log(`TemplateService: Discovering templates in: ${templatesPath}`);
       
       // Check cache validity
       const cacheKey = this.createCacheKey(templatesPath, options);
       if (config.enableCaching && this.isCacheValid(cacheKey)) {
+        console.log('TemplateService: Using cached templates');
         return this.templatesCache.get(cacheKey) || [];
       }
       
       // Check if templates directory exists
+      console.log('TemplateService: Checking if directory exists...');
       if (!await this.directoryExists(templatesPath)) {
         console.warn(`Templates directory does not exist: ${templatesPath}`);
         return [];
       }
+      console.log('TemplateService: Directory exists, finding template directories...');
       
       const discoveredTemplates: Template[] = [];
       const templateDirs = await this.findTemplateDirectories(templatesPath, options);
+      console.log(`TemplateService: Found ${templateDirs.length} template directories:`, templateDirs);
       
       for (const templateDir of templateDirs) {
         try {
+          console.log(`TemplateService: Loading template from: ${templateDir}`);
           const template = await this.loadTemplate(templateDir);
           if (template && this.validateTemplate(template).isValid) {
             discoveredTemplates.push(template);
+            console.log(`TemplateService: Successfully loaded template: ${template.name}`);
+          } else {
+            console.warn(`TemplateService: Template validation failed for: ${templateDir}`);
           }
         } catch (error) {
           console.warn(`Failed to load template from ${templateDir}:`, error);
@@ -254,9 +263,13 @@ export class TemplateService {
    */
   private async directoryExists(dirPath: string): Promise<boolean> {
     try {
+      console.log(`TemplateService: Checking if directory exists: ${dirPath}`);
       const stat = await fs.stat(dirPath);
-      return stat.isDirectory();
-    } catch {
+      const exists = stat.isDirectory();
+      console.log(`TemplateService: Directory exists: ${exists}`);
+      return exists;
+    } catch (error) {
+      console.log(`TemplateService: Directory check failed:`, error);
       return false;
     }
   }

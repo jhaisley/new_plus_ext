@@ -67,18 +67,6 @@ export interface TemplateValidationResult {
  * Template discovery options
  */
 export interface TemplateDiscoveryOptions {
-  /** Include nested directories */
-  recursive?: boolean;
-  
   /** Filter by template type */
   type?: 'file' | 'folder';
-  
-  /** Filter by category */
-  category?: string;
-  
-  /** Filter by tags */
-  tags?: string[];
-  
-  /** Include hidden templates */
-  includeHidden?: boolean;
 }

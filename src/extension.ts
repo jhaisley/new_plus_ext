@@ -1,26 +1,103 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import { ConfigService } from './services/configService';
+import { TemplateService } from './services/templateService';
+import { VariableService } from './services/variableService';
+import { NewFromTemplateCommand } from './commands/newFromTemplate';
+import { OpenTemplatesFolderCommand } from './commands/openTemplatesFolder';
+import { WorkspaceIntegration } from './utils/workspaceIntegration';
+import { ContextMenuIntegration } from './utils/contextMenuIntegration';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
+// Services
+let configService: ConfigService;
+let templateService: TemplateService;
+let variableService: VariableService;
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "newplus" is now active!');
+// Integration utilities
+let workspaceIntegration: WorkspaceIntegration;
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	let disposable = vscode.commands.registerCommand('newplus.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from NewPlus!');
-	});
+// Commands
+let newFromTemplateCommand: NewFromTemplateCommand;
+let openTemplatesFolderCommand: OpenTemplatesFolderCommand;
 
-	context.subscriptions.push(disposable);
+/**
+ * Extension context wrapper for testing
+ */
+export class ExtensionContext {
+  /**
+   * Activate the extension
+   */
+  public static async activate(context: vscode.ExtensionContext): Promise<void> {
+    console.log('NewPlus extension is being activated...');
+
+    try {
+      // Initialize services
+      configService = new ConfigService();
+      await configService.initialize();
+
+      variableService = new VariableService();
+      
+      templateService = new TemplateService(configService);
+      await templateService.initialize();
+
+      // Initialize integration utilities
+      workspaceIntegration = new WorkspaceIntegration();
+
+      // Initialize commands
+      newFromTemplateCommand = new NewFromTemplateCommand(templateService, variableService, workspaceIntegration);
+      openTemplatesFolderCommand = new OpenTemplatesFolderCommand();
+
+      // Register commands
+      const disposables = [
+        vscode.commands.registerCommand('newFromTemplate.createFromTemplate', 
+          (uri?: vscode.Uri) => newFromTemplateCommand.execute(uri)
+        ),
+        vscode.commands.registerCommand('newFromTemplate.openTemplatesFolder', 
+          () => openTemplatesFolderCommand.execute()
+        )
+      ];
+
+      // Add disposables to context
+      context.subscriptions.push(...disposables);
+
+      console.log('NewPlus extension activated successfully!');
+    } catch (error) {
+      console.error('Failed to activate NewPlus extension:', error);
+      vscode.window.showErrorMessage(`Failed to activate NewPlus extension: ${error}`);
+    }
+  }
+
+  /**
+   * Deactivate the extension
+   */
+  public static async deactivate(): Promise<void> {
+    console.log('NewPlus extension is being deactivated...');
+
+    try {
+      // Dispose services
+      if (configService) {
+        await configService.dispose();
+      }
+      if (templateService) {
+        await templateService.dispose();
+      }
+      
+      console.log('NewPlus extension deactivated successfully!');
+    } catch (error) {
+      console.error('Error during NewPlus extension deactivation:', error);
+    }
+  }
 }
 
-// This method is called when your extension is deactivated
-export function deactivate() {}
+/**
+ * Called when the extension is activated
+ */
+export async function activate(context: vscode.ExtensionContext): Promise<void> {
+  await ExtensionContext.activate(context);
+}
+
+/**
+ * Called when the extension is deactivated
+ */
+export async function deactivate(): Promise<void> {
+  await ExtensionContext.deactivate();
+}

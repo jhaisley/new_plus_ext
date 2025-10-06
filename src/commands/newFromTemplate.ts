@@ -187,7 +187,6 @@ export class NewFromTemplateCommand {
       return result;
     } catch (error) {
       console.error('NewPlus: Error in execute:', error);
-      await ErrorHandler.handleError(error, 'creating from template');
       return { success: false, error: String(error) };
     }
   }

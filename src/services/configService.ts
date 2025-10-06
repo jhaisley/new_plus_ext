@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as os from 'os';
 import { Configuration, DEFAULT_CONFIGURATION } from '../models/configuration';
-import { PathUtils } from '../utils/index';
+import { expandEnvironmentVariables } from '../utils/index';
 
 /**
  * Service for managing extension configuration
@@ -34,7 +34,7 @@ export class ConfigService {
       
       // Get configuration values with defaults
       const configuration: Configuration = {
-        templatesPath: PathUtils.expandEnvironmentVariables(
+        templatesPath: expandEnvironmentVariables(
           config.get<string>('templatesPath') || this.getDefaultTemplatesPath()
         ),
         hideFileExtensions: config.get<boolean>('display.hideFileExtensions', DEFAULT_CONFIGURATION.hideFileExtensions),

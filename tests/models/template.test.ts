@@ -1,96 +1,72 @@
 import * as assert from 'assert';
-import * as path from 'path';
-import * as fs from 'fs';
-// Import will fail until implementation exists - this is expected for TDD
-import { Template } from '../../src/models/template';
+import { Template, TemplateFile } from '../../src/models/template';
 
-suite('Template Entity Tests', () => {
+suite('Template Tests', () => {
   test('Template should have required properties', () => {
-    const templatePath = path.join(__dirname, 'test-template.txt');
-    const stats = fs.statSync(__filename); // Use current file for testing
-    
-    const template = new Template(
-      'Test Template',
-      'test-template.txt', 
-      templatePath,
-      'file',
-      'test-template.txt',
-      false,
-      stats
-    );
+    const template: Template = {
+      name: 'Test Template',
+      description: 'A test template',
+      path: '/path/to/template',
+      type: 'file',
+      files: []
+    };
 
     assert.strictEqual(template.name, 'Test Template');
-    assert.strictEqual(template.originalName, 'test-template.txt');
-    assert.strictEqual(template.path, templatePath);
+    assert.strictEqual(template.description, 'A test template');
+    assert.strictEqual(template.path, '/path/to/template');
     assert.strictEqual(template.type, 'file');
-    assert.strictEqual(template.isDirectory, false);
+    assert.ok(Array.isArray(template.files));
   });
 
-  test('Template should validate path exists', () => {
-    const invalidPath = path.join(__dirname, 'non-existent-template.txt');
-    
-    assert.throws(() => {
-      const stats = fs.statSync(__filename);
-      new Template(
-        'Invalid Template',
-        'non-existent-template.txt',
-        invalidPath,
-        'file', 
-        'non-existent-template.txt',
-        false,
-        stats
-      );
-    });
+  test('Template type should be file or folder', () => {
+    const fileTemplate: Template = {
+      name: 'File Template',
+      description: '',
+      path: '/path/file.txt',
+      type: 'file',
+      files: []
+    };
+
+    const folderTemplate: Template = {
+      name: 'Folder Template',
+      description: '',
+      path: '/path/folder',
+      type: 'folder',
+      files: [
+        { relativePath: 'file1.txt', content: '' },
+        { relativePath: 'file2.txt', content: '' }
+      ]
+    };
+
+    assert.strictEqual(fileTemplate.type, 'file');
+    assert.strictEqual(folderTemplate.type, 'folder');
+    assert.strictEqual(folderTemplate.files.length, 2);
   });
 
-  test('Template should identify directory type correctly', () => {
-    const dirPath = __dirname;
-    const stats = fs.statSync(dirPath);
-    
-    const template = new Template(
-      'Test Directory',
-      'test-dir',
-      dirPath,
-      'folder',
-      'test-dir', 
-      true,
-      stats
-    );
+  test('TemplateFile should have relativePath and content', () => {
+    const templateFile: TemplateFile = {
+      relativePath: 'src/index.ts',
+      content: 'console.log("Hello");'
+    };
 
-    assert.strictEqual(template.type, 'folder');
-    assert.strictEqual(template.isDirectory, true);
+    assert.strictEqual(templateFile.relativePath, 'src/index.ts');
+    assert.strictEqual(templateFile.content, 'console.log("Hello");');
   });
 
-  test('Template name should not be empty after processing', () => {
-    assert.throws(() => {
-      const stats = fs.statSync(__filename);
-      new Template(
-        '', // Empty name should throw
-        'original.txt',
-        __filename,
-        'file',
-        'original.txt',
-        false,
-        stats
-      );
-    });
-  });
+  test('Template files array can contain multiple files', () => {
+    const template: Template = {
+      name: 'Multi-file Template',
+      description: 'Template with multiple files',
+      path: '/path',
+      type: 'folder',
+      files: [
+        { relativePath: 'file1.txt', content: 'Content 1' },
+        { relativePath: 'nested/file2.txt', content: 'Content 2' },
+        { relativePath: 'nested/deep/file3.txt', content: 'Content 3' }
+      ]
+    };
 
-  test('Template type should match file system entity', () => {
-    const filePath = __filename;
-    const fileStats = fs.statSync(filePath);
-    
-    // This should throw because we're saying it's a folder but stats show it's a file
-    assert.throws(() => {
-      new Template(
-        'Test File',
-        'test.ts',
-        filePath,
-        'folder', // Wrong type
-        'test.ts',
-        true, // Wrong isDirectory
-        fileStats
-      );
-    });
+    assert.strictEqual(template.files.length, 3);
+    assert.strictEqual(template.files[1].relativePath, 'nested/file2.txt');
   });
 });

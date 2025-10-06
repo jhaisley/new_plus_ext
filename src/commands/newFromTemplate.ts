@@ -5,7 +5,6 @@ import { TemplateService } from '../services/templateService';
 import { VariableService } from '../services/variableService';
 import { WorkspaceIntegration } from '../utils/workspaceIntegration';
 import { ContextMenuIntegration } from '../utils/contextMenuIntegration';
-import { ErrorHandler, ErrorType, NewPlusError } from '../utils/errorHandler';
 import { ConfigService } from '../services/configService';
 
 /**
@@ -152,16 +151,10 @@ export class NewFromTemplateCommand {
 
       // Validate inputs before creation
       if (!targetLocation) {
-        throw new NewPlusError(
-          ErrorType.WORKSPACE_ERROR,
-          'Cannot determine target location',
-          'Unable to determine where to create the template',
-          [
-            'Open a folder or workspace in VS Code',
-            'Right-click on a folder in the explorer',
-            'Ensure you have write permissions'
-          ]
-        );
+        const message = 'Unable to determine where to create the template';
+        console.error('NewPlus:', message);
+        vscode.window.showErrorMessage(message);
+        return undefined;
       }
 
       // Create from template with progress indication
@@ -172,16 +165,10 @@ export class NewFromTemplateCommand {
         await this.templateService.addToRecentlyUsed(selectedTemplate.name);
         await this.handleSuccessfulCreation(result, selectedTemplate);
       } else {
-        throw new NewPlusError(
-          ErrorType.FILE_SYSTEM_ERROR,
-          result.error || 'Template creation failed',
-          `Failed to create ${selectedTemplate.type}`,
-          [
-            'Check if the target directory is writable',
-            'Ensure the template files are valid',
-            'Try a different location'
-          ]
-        );
+        const message = `Failed to create ${selectedTemplate.type}: ${result.error || 'Unknown error'}`;
+        console.error('NewPlus:', message);
+        vscode.window.showErrorMessage(message);
+        return undefined;
       }
 
       return result;

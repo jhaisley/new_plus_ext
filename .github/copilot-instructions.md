@@ -1,6 +1,6 @@
 ﻿# NewPlus VS Code Extension - AI Development Guide
 
-Last updated: 2025-10-06
+Last updated: 2025-10-06 (Post Phase 2 Refactoring)
 
 ## Architecture Overview
 
@@ -10,18 +10,18 @@ Last updated: 2025-10-06
 ```
 extension.ts → Commands → Services → Models
                 ↓
-         Utils (Integration)
+         Utils (Pure Functions)
 ```
 
 - **ConfigService**: Manages extension settings, defaults to `%LOCALAPPDATA%\Microsoft\PowerToys\NewPlus\Templates`
-- **TemplateService**: Discovers templates from filesystem, maintains cache with 5-minute validity
+- **TemplateService**: Discovers templates from filesystem with lazy content loading
 - **VariableService**: Processes `$VARIABLE$` substitutions with recursion limit of 10 levels
 - **NewFromTemplateCommand**: Orchestrates user flow with context-aware template filtering
 
 ### Key Integration Points
 - **WorkspaceIntegration**: Project type detection (detects Node.js via `package.json`, Python via `requirements.txt`, etc.)
 - **ContextMenuIntegration**: Filters templates based on right-click location (file vs folder context)
-- **ErrorHandler**: Centralized error handling with user-friendly messages and actionable suggestions
+- **Utils (functions)**: Validation, file operations, path utilities - all exported as pure functions
 
 ## Critical Workflows
 
@@ -30,7 +30,8 @@ extension.ts → Commands → Services → Models
 2. Each file/folder in root becomes a template (no metadata required)
 3. File templates = single file; Folder templates = entire directory structure
 4. **No `template.json` parsing** - templates are raw files/folders
-5. Cache invalidates after 5 minutes or on filesystem changes (when `watchForChanges: true`)
+5. **Lazy loading**: Content loaded on-demand via `loadTemplateContent()` when template is used
+6. **Parallel discovery**: Uses `Promise.all()` for fast template enumeration
 
 ### Variable Processing Rules
 - Pattern: `$VARIABLE_NAME$` (uppercase, underscores allowed)
@@ -73,19 +74,14 @@ test('Should validate template name correctly', () => {
 
 ### Error Handling
 ```typescript
-// Use ErrorHandler for user-facing errors
+// Simple console-based error handling
 try {
   await operation();
 } catch (error) {
-  await ErrorHandler.handleError(error, 'context description');
+  console.error('NewPlus:', error);
+  vscode.window.showErrorMessage(`Error: ${error}`);
   return { success: false, error: String(error) };
 }
-
-// Or wrap operations:
-const result = await ErrorHandler.withErrorHandling(
-  async () => operation(),
-  'creating template'
-);
 ```
 
 ### Service Initialization
@@ -99,23 +95,22 @@ await templateService.initialize();
 ```
 
 ### Disposal Pattern
-All services implement `dispose()` for cleanup:
+Services implement `dispose()` for cleanup:
 ```typescript
 public async dispose(): Promise<void> {
-  if (this.fileWatcher) {
-    this.fileWatcher.dispose();
-  }
-  this.templatesCache.clear();
+  // Clean up resources
+  this.templates = [];
 }
 ```
 
 ## Common Pitfalls
 
 1. **Template paths**: Always use `vscode.Uri.file()` for filesystem operations, handle both Windows (`\`) and Unix (`/`) paths
-2. **Cache invalidation**: TemplateService cache is 5-minute TTL - don't assume fresh discovery
+2. **Lazy loading**: Template content only loaded when needed - call `loadTemplateContent()` before use
 3. **Variable recursion**: VariableService has max depth 10 - test circular references
 4. **Context menu URIs**: Can be undefined (Command Palette) or point to files (use `WorkspaceIntegration.getTargetDirectory()`)
 5. **Progress indication**: Use `vscode.window.withProgress()` only for multi-file operations (threshold: >1 file)
+6. **Util functions**: Import specific functions from `utils/index.ts`, not classes (e.g., `import { isValidFileName } from '../utils'`)
 
 ## Build & Debug
 
@@ -128,10 +123,13 @@ public async dispose(): Promise<void> {
 ## Key Files Reference
 
 - `src/extension.ts`: Extension lifecycle, service initialization
-- `src/commands/newFromTemplate.ts`: Main command logic (350+ lines)
-- `src/services/templateService.ts`: Template discovery, caching, filesystem operations
+- `src/commands/newFromTemplate.ts`: Main command logic (~650 lines)
+- `src/services/templateService.ts`: Template discovery with lazy loading (~250 lines)
+- `src/services/configService.ts`: Configuration management (~130 lines)
 - `src/services/variableService.ts`: Variable substitution engine
-- `src/utils/errorHandler.ts`: Comprehensive error types with user suggestions
+- `src/utils/index.ts`: Validation, file ops, path utilities (pure functions ~330 lines)
+- `src/utils/contextMenuIntegration.ts`: Context-aware template filtering (~130 lines)
+- `src/utils/workspaceIntegration.ts`: Project type detection
 - `package.json`: Command contributions, context menu integration points
 
 ## Configuration Properties
@@ -155,40 +153,47 @@ Contextual filtering uses `ContextMenuIntegration.getContextualTemplates()` to s
 
 ---
 
-## ⚠️ CRITICAL WARNINGS - Code Quality Issues
+## Refactoring History (Phase 1 & 2 Complete - Oct 2025)
 
-**BEFORE making changes, read `CODE_REVIEW.md` for known issues.**
+### What Was Removed
+- ❌ **Logger service** (`src/utils/logger.ts`) - 125 lines, never imported
+- ❌ **ErrorHandler** (`src/utils/errorHandler.ts`) - 165 lines, replaced with simple console.*
+- ❌ **Template caching** - Multi-layer cache removed, templates stored in-memory array
+- ❌ **Configuration migrations** - Import/export/validate/merge methods deleted
+- ❌ **Template metadata** - TemplateVariable, category, tags, timestamps removed
+- ❌ **Context analysis** - 80-line analyzeFileContext() with extension mapping deleted
+- ❌ **Duplicate code** - Removed duplicate path expansion logic
+- ❌ **Static util classes** - Converted ValidationUtils, FileOperationUtils, PathUtils to functions
 
-### Known Dead Code (DO NOT EXTEND)
-- `src/utils/logger.ts` - **NEVER USED** (100% dead code)
-- Configuration migration system - export/import functions never called
-- Template variables prompting - interface exists but not implemented
-- Category/tag filtering - templates don't have categories populated
+### Total Lines Removed
+- **~900 lines of dead/duplicate code** (56% reduction in problem areas)
+- Models: 180→30 (Configuration), 140→50 (Template)
+- Services: 280→130 (ConfigService), 340→250 (TemplateService)
+- Utils: Deleted 290 lines (logger, errorHandler), simplified 200→130 (contextMenu)
+- Converted 280 lines of static classes to 330 lines of pure functions
 
-### Settings Mismatch
-Only these 4 settings exist in `package.json`:
-```json
-templatesPath, display.hideFileExtensions, display.hideSortingPrefix, behavior.replaceVariablesInFilename
-```
+### Current Architecture Benefits
+✅ **Fast template discovery** - Parallel Promise.all(), lazy content loading  
+✅ **Simple error handling** - Consistent console.* with 'NewPlus:' prefix  
+✅ **Lean models** - Only 4 settings matching package.json  
+✅ **Pure functions** - No static classes, easier to test and compose  
+✅ **No caching overhead** - Direct filesystem reads (6-20 templates = instant)  
+✅ **Async-safe** - Fixed race conditions in context detection  
 
-`Configuration` model defines 10+ more settings that **don't exist** - ignore them.
-
-### Inconsistent Patterns
-- Logging: Uses raw `console.*` everywhere despite having Logger class
-- Error handling: Mix of ErrorHandler, try/catch, and silent errors
-- Utils: Classes with static methods (should be functions)
-- Async: Some race conditions in context analysis (see CODE_REVIEW.md #9)
-
-### Performance Issues
-- Template discovery loads ALL file content eagerly (should be lazy)
-- Sequential file loading (should use Promise.all)
-- Multi-layer caching for <20 templates (premature optimization)
-
-### Refactoring Priorities
-1. **Don't extend dead code** - Delete, don't build on top of unused features
-2. **Match package.json** - Settings in models should match actual VS Code settings
-3. **Simplify before adding** - 57% of codebase is unused (see metrics in CODE_REVIEW.md)
+### What Remains
+The extension is now focused on core functionality:
+- Template discovery from filesystem
+- Variable substitution ($VARIABLE$ pattern)
+- Context-aware template suggestions
+- File/folder creation from templates
+- PowerToys NewPlus compatibility
 
 ---
 
-**Next Steps for AI Agents**: When adding features, maintain the service layer separation. All VS Code API calls go through Commands or Utils, never directly in Services. Cache invalidation is critical - update `TemplateService.onTemplatesDirectoryChanged()` for filesystem changes.
+**Next Steps for AI Agents**: The codebase is now clean and focused. When adding features:
+1. Keep models simple - match package.json settings exactly
+2. Use pure functions from utils - avoid classes with static methods
+3. Lazy-load resources - don't cache prematurely
+4. Async patterns - always await, use Promise.all() for parallel ops
+5. Error handling - console.error with 'NewPlus:' prefix, show user messages
+6. Test coverage - mirror src/ structure in tests/

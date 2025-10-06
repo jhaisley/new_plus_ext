@@ -1,16 +1,252 @@
-# Critical Code Review - NewPlus Extension
+# NewPlus Extension - Architecture & Patterns
 
-**Review Date**: October 6, 2025  
-**Reviewer**: Senior Developer Analysis  
-**Severity Levels**: 🔴 Critical | 🟡 Major | 🔵 Minor | ℹ️ Info
+**Version**: 0.1.7  
+**Last Updated**: October 6, 2025
 
 ---
 
-## Executive Summary
+## Design Philosophy
 
-The NewPlus extension is **functionally sound** but suffers from **significant architectural bloat**, **unused code**, **inconsistent patterns**, and **performance concerns**. The codebase appears to have been over-engineered with features that aren't used or don't align with the PowerToys NewPlus simplicity goal.
+NewPlus follows a **lean, functional architecture** focused on core template functionality. The design prioritizes:
 
-**Overall Assessment**: 6/10 - Works but needs refactoring
+1. **Simplicity** - Match PowerToys NewPlus simplicity (file copier, not enterprise framework)
+2. **Performance** - Lazy loading, parallel operations, minimal overhead
+3. **Maintainability** - Pure functions, clear separation of concerns
+4. **Type Safety** - TypeScript strict mode, interfaces matching reality
+
+---
+
+## Architecture Patterns
+
+### Service Layer
+```typescript
+extension.ts → Commands → Services → Models
+                 ↓
+              Utils (Pure Functions)
+```
+
+**Services** (Singleton Pattern):
+- `ConfigService` - VS Code settings integration
+- `TemplateService` - Template discovery and content loading
+- `VariableService` - $VARIABLE$ substitution engine
+
+**Commands**:
+- `NewFromTemplateCommand` - Main template creation workflow
+- `OpenTemplatesFolderCommand` - Simple folder opener
+
+**Utils** (Functional):
+- Exported pure functions (not classes)
+- Validation: `isValidFileName()`, `isValidTemplateName()`
+- File ops: `fileExists()`, `copyFile()`, `readFile()`
+- Path utils: `normalize()`, `expandEnvironmentVariables()`
+
+### Error Handling
+Simple console-based pattern:
+```typescript
+try {
+  await operation();
+} catch (error) {
+  console.error('NewPlus:', error);
+  vscode.window.showErrorMessage(`Error: ${error}`);
+  return { success: false, error: String(error) };
+}
+```
+
+### Async Patterns
+- Always `await` (no `.then()` chains)
+- Use `Promise.all()` for parallel operations
+- Proper error boundaries
+
+---
+
+## Performance Considerations
+
+### Template Discovery
+**Lazy Loading**:
+- Discovery scans filenames only (no content reading)
+- Content loaded on-demand via `loadTemplateContent()`
+- Instant for typical 6-20 templates
+
+**Parallel Operations**:
+```typescript
+// Good: Parallel
+const templates = await Promise.all(
+  entries.map(async ([name, type]) => this.createTemplate(name, type))
+);
+
+// Avoid: Sequential
+for (const entry of entries) {
+  await this.createTemplate(entry);  // Blocks
+}
+```
+
+### No Caching
+For 6-20 templates, direct filesystem reads are faster than cache management overhead.
+
+---
+
+## Code Patterns
+
+### Pure Functions Over Classes
+```typescript
+// Prefer:
+export function isValidFileName(name: string): boolean { ... }
+
+// Avoid:
+export class ValidationUtils {
+  static isValidFileName(name: string): boolean { ... }
+}
+```
+
+**Benefits**: Better tree-shaking, easier testing, functional composition
+
+### Minimal Models
+Interfaces should match actual usage:
+
+```typescript
+// Configuration - matches package.json exactly
+export interface Configuration {
+  templatesPath: string;
+  hideFileExtensions: boolean;
+  hideSortingPrefix: boolean;
+  replaceVariablesInFilename: boolean;
+}
+
+// Template - simple file/folder representation
+export interface Template {
+  name: string;
+  description: string;
+  type: 'file' | 'folder';
+  path: string;
+  files: TemplateFile[];
+}
+```
+
+**Avoid**: Adding fields "for future use" that aren't implemented
+
+---
+
+## Integration Points
+
+### VS Code APIs
+- `vscode.workspace.fs.*` - All file operations
+- `vscode.window.showQuickPick()` - Template selection
+- `vscode.window.showInputBox()` - Name prompting
+- `vscode.commands.registerCommand()` - Command registration
+
+### Context Menu Integration
+Commands appear based on:
+- Explorer context (file vs folder)
+- Workspace availability
+- Context variables in `package.json`
+
+### PowerToys Compatibility
+- Same default path: `%LOCALAPPDATA%\Microsoft\PowerToys\NewPlus\Templates`
+- Same structure: Raw files/folders
+- Same variables: `$DATE$`, `$USER$`, etc.
+
+---
+
+## Testing Strategy
+
+### Structure
+```
+tests/
+  commands/       - Command tests
+  services/       - Service unit tests
+  models/         - Model/interface tests
+  utils/          - Pure function tests
+  integration/    - Cross-component tests
+```
+
+### Patterns
+```typescript
+// Test pure functions directly
+test('Should validate template name correctly', () => {
+  assert.ok(utils.isValidTemplateName('MyTemplate'));
+  assert.ok(!utils.isValidTemplateName('invalid/name'));
+});
+
+// Test services with mocks when needed
+test('Should discover templates from directory', async () => {
+  const templates = await templateService.discoverTemplates();
+  assert.ok(templates.length > 0);
+});
+```
+
+---
+
+## Common Pitfalls
+
+1. **Path Handling**: Always use `vscode.Uri.file()`, handle both `/` and `\`
+2. **Async Race Conditions**: Always `await` filesystem operations
+3. **Context Detection**: URI can be undefined (Command Palette invocation)
+4. **Variable Recursion**: VariableService has max depth 10
+5. **Content Loading**: Call `loadTemplateContent()` before using template
+
+---
+
+## Extension Points
+
+### Adding New Variables
+```typescript
+// In variableService.ts
+private getBuiltInVariables(): Map<string, string> {
+  return new Map([
+    ['DATE', new Date().toLocaleDateString()],
+    ['YOUR_VAR', yourValue],  // Add here
+  ]);
+}
+```
+
+### Adding Template Filters
+```typescript
+// In contextMenuIntegration.ts
+export function getContextualTemplates(
+  templates: Template[],
+  context: TemplateContext
+): { suggested: Template[]; other: Template[] }
+```
+
+### Adding Settings
+1. Add to `package.json` contributes.configuration
+2. Add to `Configuration` interface in models
+3. Read in `ConfigService.loadConfiguration()`
+
+---
+
+## Development Guidelines
+
+### Before Committing
+```bash
+npm run compile   # TypeScript compilation
+npm run lint      # ESLint checks
+npm test          # Run test suite
+```
+
+### Code Style
+- TypeScript strict mode enabled
+- Prefer `const` over `let`
+- Use async/await (not callbacks)
+- Pure functions when possible
+- Explicit error handling
+
+### Documentation
+- JSDoc comments for public APIs
+- Inline comments for complex logic
+- Update README.md for user-facing changes
+
+---
+
+## Resources
+
+- [VS Code Extension API](https://code.visualstudio.com/api)
+- [PowerToys NewPlus](https://learn.microsoft.com/en-us/windows/powertoys/)
+- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
+
+---
+
+**This extension prioritizes simplicity and performance over abstraction.**
 
 ---
 

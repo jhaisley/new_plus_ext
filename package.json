@@ -32,13 +32,12 @@
     "commands": [
       {
         "command": "newFromTemplate.createFromTemplate",
-        "title": "New+",
-        "category": "New from Template"
+        "title": "New+"
       },
       {
         "command": "newFromTemplate.openTemplatesFolder", 
-        "title": "New from Template: Open Templates Folder",
-        "category": "New from Template"
+        "title": "Open Templates Folder",
+        "category": "New+"
       }
     ],
     "menus": {

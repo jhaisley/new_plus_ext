@@ -67,15 +67,8 @@ export class TemplateService {
           console.log(`TemplateService: Loading template from: ${templateDir}`);
           const template = await this.loadTemplate(templateDir);
           if (template) {
-            console.log(`TemplateService: Template loaded, validating: ${template.name}`);
-            const validation = this.validateTemplate(template);
-            console.log(`TemplateService: Validation result:`, validation);
-            if (validation.isValid) {
-              discoveredTemplates.push(template);
-              console.log(`TemplateService: Successfully loaded template: ${template.name}`);
-            } else {
-              console.warn(`TemplateService: Template validation failed for: ${templateDir}`, validation.errors);
-            }
+            discoveredTemplates.push(template);
+            console.log(`TemplateService: Successfully loaded template: ${template.name}`);
           } else {
             console.warn(`TemplateService: Failed to load template from: ${templateDir}`);
           }
@@ -177,16 +170,15 @@ export class TemplateService {
       errors.push('Template name is too long (max 100 characters)');
     }
     
-    if (template.name && !/^[a-zA-Z0-9._-]+$/.test(template.name)) {
+    if (template.name && !/^[a-zA-Z0-9\s._-]+$/.test(template.name)) {
       errors.push('Template name contains invalid characters');
     }
     
-    // Check files array
+    // Check files array - for NewPlus style, files can be empty (folder templates)
     if (!Array.isArray(template.files)) {
       errors.push('Template must have a files array');
-    } else if (template.files.length === 0 && template.type === 'file') {
-      errors.push('File template must contain at least one file');
     }
+    // Note: Empty files array is OK for NewPlus - it just means copy the directory structure
     
     // Check variables array
     if (template.variables && !Array.isArray(template.variables)) {
@@ -317,28 +309,18 @@ export class TemplateService {
       console.log(`TemplateService: Found ${entries.length} entries in directory`);
       
       for (const [name, type] of entries) {
+        // Skip template.json metadata files
+        if (name === 'template.json') {
+          continue;
+        }
+        
         console.log(`TemplateService: Checking entry: ${name}, type: ${type}`);
-        if (type === vscode.FileType.Directory) {
+        
+        // Only add top-level items (files or directories)
+        if (type === vscode.FileType.Directory || type === vscode.FileType.File) {
           const fullPath = path.join(basePath, name);
-          
-          // Check if this directory contains a template.json file
-          const templateJsonPath = path.join(fullPath, 'template.json');
-          const templateJsonUri = vscode.Uri.file(templateJsonPath);
-          console.log(`TemplateService: Checking for template.json at: ${templateJsonPath}`);
-          
-          try {
-            await vscode.workspace.fs.stat(templateJsonUri);
-            console.log(`TemplateService: Found template directory: ${fullPath}`);
-            templateDirs.push(fullPath);
-          } catch {
-            console.log(`TemplateService: No template.json found in: ${fullPath}`);
-          }
-          
-          // Recursively search subdirectories if enabled
-          if (options?.recursive !== false) {
-            const subDirs = await this.findTemplateDirectories(fullPath, options);
-            templateDirs.push(...subDirs);
-          }
+          console.log(`TemplateService: Found template: ${fullPath}`);
+          templateDirs.push(fullPath);
         }
       }
     } catch (error) {
@@ -351,72 +333,71 @@ export class TemplateService {
   /**
    * Load template from directory
    */
-  private async loadTemplate(templateDir: string): Promise<Template | null> {
+  private async loadTemplate(templatePath: string): Promise<Template | null> {
     try {
-      const templateJsonPath = path.join(templateDir, 'template.json');
-      // Read template configuration
-      const templateJsonUri = vscode.Uri.file(templateJsonPath);
-      const templateJsonData = await vscode.workspace.fs.readFile(templateJsonUri);
-      const templateJsonContent = new TextDecoder().decode(templateJsonData);
-      const templateConfig = JSON.parse(templateJsonContent);
+      const stat = await vscode.workspace.fs.stat(vscode.Uri.file(templatePath));
+      const isFile = (stat.type & vscode.FileType.File) !== 0;
+      const isDirectory = (stat.type & vscode.FileType.Directory) !== 0;
       
-      // Load template files
-      const files = await this.loadTemplateFiles(templateDir);
+      let templateName = path.basename(templatePath);
+      let templateType: 'file' | 'folder' = isFile ? 'file' : 'folder';
+      
+      // Remove file extension for display name if it's a file
+      if (isFile) {
+        templateName = path.basename(templatePath, path.extname(templatePath));
+      }
+      
+      console.log(`TemplateService: Loading files for template: ${templateName}`);
+      const files = await this.loadTemplateFiles(templatePath, isFile);
+      console.log(`TemplateService: Loaded ${files.length} files for template: ${templateName}`);
       
       const template: Template = {
-        name: templateConfig.name,
-        description: templateConfig.description || '',
-        type: templateConfig.type,
-        path: templateDir,
+        name: templateName,
+        description: `Template: ${templateName}`,
+        type: templateType,
+        path: templatePath,
         files,
-        variables: templateConfig.variables || [],
-        category: templateConfig.category,
-        tags: templateConfig.tags,
-        version: templateConfig.version,
+        variables: [],
+        category: 'General',
+        tags: [],
+        version: '1.0.0',
         createdAt: new Date(),
         modifiedAt: new Date()
       };
       
+      console.log(`TemplateService: Template loaded successfully: ${templateName}`);
       return template;
     } catch (error) {
-      console.warn(`Failed to load template from ${templateDir}:`, error);
+      console.warn(`Failed to load template from ${templatePath}:`, error);
       return null;
     }
   }
 
   /**
-   * Load all files from template directory
+   * Load all files from template path (file or directory)
    */
-  private async loadTemplateFiles(templateDir: string): Promise<any[]> {
+  private async loadTemplateFiles(templatePath: string, isFile: boolean): Promise<any[]> {
     const files: any[] = [];
     
     try {
-      const dirUri = vscode.Uri.file(templateDir);
-      const entries = await vscode.workspace.fs.readDirectory(dirUri);
-      
-      for (const [name, type] of entries) {
-        if (name === 'template.json') {
-          continue; // Skip template config file
-        }
+      if (isFile) {
+        // Single file template
+        const fileName = path.basename(templatePath);
+        const fileUri = vscode.Uri.file(templatePath);
+        const fileData = await vscode.workspace.fs.readFile(fileUri);
+        const content = new TextDecoder().decode(fileData);
         
-        const fullPath = path.join(templateDir, name);
-        
-        if (type === vscode.FileType.File) {
-          const fileUri = vscode.Uri.file(fullPath);
-          const fileData = await vscode.workspace.fs.readFile(fileUri);
-          const content = new TextDecoder().decode(fileData);
-          files.push({
-            relativePath: name,
-            content
-          });
-        } else if (type === vscode.FileType.Directory) {
-          // Recursively load files from subdirectories
-          const subFiles = await this.loadTemplateFilesRecursive(fullPath, name);
-          files.push(...subFiles);
-        }
+        files.push({
+          relativePath: fileName,
+          content
+        });
+      } else {
+        // Directory template - recursively load all files
+        const dirFiles = await this.loadTemplateFilesRecursive(templatePath, '');
+        files.push(...dirFiles);
       }
     } catch (error) {
-      console.warn(`Failed to load template files from ${templateDir}:`, error);
+      console.warn(`Failed to load template files from ${templatePath}:`, error);
     }
     
     return files;

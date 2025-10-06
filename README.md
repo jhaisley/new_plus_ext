@@ -1,267 +1,231 @@
-# NewPlus VS Code Extension
+# NewPlus for VS Code
 
-A powerful VS Code extension that ports the functionality of the New+ PowerToy for creating files and folders from templates. NewPlus integrates seamlessly with VS Code's interface, providing context-aware template selection and workspace integration.
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/jhaisley/newplus/releases)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-## Features
+Create files and folders from templates with context-aware suggestions and workspace intelligence. A powerful VS Code extension that brings PowerToys NewPlus functionality to your editor.
 
-### 🎯 Context-Aware Template Selection
-- **Smart Suggestions**: Templates are automatically filtered and prioritized based on your current context
-- **Workspace Intelligence**: Detects project types (Node.js, Python, etc.) and suggests relevant templates
-- **File/Folder Context**: Right-click in file explorer to get contextually appropriate templates
+![NewPlus Demo](https://raw.githubusercontent.com/jhaisley/newplus/main/images/demo.gif)
 
-### 🚀 VS Code Integration
-- **File Explorer Context Menu**: Right-click on folders/files to create new content from templates
-- **Command Palette**: Access via `New+` command from anywhere in VS Code
-- **Progress Indication**: Visual progress feedback for complex template creation
-- **Workspace Detection**: Automatically detects active workspace folders and project structure
+## ✨ Features
 
-### 📂 Template Management
-- **File & Folder Templates**: Support for both individual files and complete folder structures
-- **Variable Substitution**: Dynamic content with customizable variables
-- **Recent Templates**: Quick access to your most recently used templates
-- **Template Categories**: Organized template browsing with visual icons
+### 🎯 Smart Template Selection
+- **Context-Aware Filtering**: Automatically suggests templates based on your current location and project type
+- **Workspace Intelligence**: Detects Node.js, Python, Java, and other project types
+- **File vs Folder Context**: Shows appropriate templates when right-clicking files or folders
 
-### ⚡ Enhanced User Experience
-- **Smart Name Suggestions**: Context-aware default names for new files/folders
-- **Validation**: Real-time validation of file/folder names with helpful error messages
-- **One-Click Actions**: Quick open, reveal in explorer, or browse after creation
-- **Error Handling**: Comprehensive error messages with suggested solutions
+### 📝 Template System
+- **File Templates**: Individual files with variable substitution
+- **Folder Templates**: Complete directory structures with multiple files
+- **Variable Support**: Built-in and custom variables (`$DATE$`, `$USERNAME$`, custom prompts)
+- **PowerToys Compatible**: Uses PowerToys NewPlus template directory structure
 
-## Installation
+### 🚀 Seamless Integration
+- **Explorer Context Menu**: Right-click to create from templates
+- **Command Palette**: Quick access via `Ctrl+Shift+P` → "New+"
+- **Progress Feedback**: Visual progress for multi-file operations
+- **Smart Naming**: Context-aware default names with validation
 
-1. Install from VS Code Marketplace (coming soon)
-2. Or install from VSIX:
-   - Download the `.vsix` file
-   - Open VS Code
-   - Run `Extensions: Install from VSIX...` command
-   - Select the downloaded file
+## 🎬 Quick Start
 
-## Usage
+### Installation
+
+**From VS Code Marketplace:**
+1. Open VS Code
+2. Go to Extensions (`Ctrl+Shift+X`)
+3. Search for "NewPlus"
+4. Click Install
+
+**From VSIX:**
+1. Download `newplus-1.0.0.vsix` from [releases](https://github.com/jhaisley/newplus/releases)
+2. Open VS Code
+3. Run `Extensions: Install from VSIX...`
+4. Select the downloaded file
+
+## 🎯 Usage
 
 ### Creating from Templates
 
-#### Method 1: File Explorer Context Menu
-1. Right-click on any folder in the file explorer
-2. Select "New+" from the context menu
-3. Choose from contextually suggested templates
-4. Enter a name and any required variables
-5. Template is created and ready to use!
+**Via Context Menu** (Recommended)
+1. Right-click on any folder in the Explorer
+2. Select **"New+"**
+3. Choose a template (filtered by context)
+4. Enter a name and any custom variables
+5. Done! 🎉
 
-#### Method 2: Command Palette
-1. Open Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
-2. Type "New+" and select the command
-3. Choose your template from the list
-4. Follow the prompts to create your file/folder
+**Via Command Palette**
+1. Press `Ctrl+Shift+P` (Windows/Linux) or `Cmd+Shift+P` (Mac)
+2. Type **"New+"**
+3. Select your template
+4. Follow the prompts
 
-### Template Organization
+### Template Structure
 
-Templates are stored in: `%LOCALAPPDATA%\\Microsoft\\PowerToys\\NewPlus\\Templates`
+Templates are stored in:  
+**Windows:** `%LOCALAPPDATA%\Microsoft\PowerToys\NewPlus\Templates`  
+**Mac/Linux:** `~/.local/share/Microsoft/PowerToys/NewPlus/Templates`
 
-**File Templates**: Individual files with optional variable substitution
+**File Template Example:**
 ```
-MyTemplate.txt
-```
-
-**Folder Templates**: Complete directory structures
-```
-ProjectTemplate/
-├── src/
-│   └── index.ts
-├── tests/
-│   └── example.test.ts
-└── package.json
+MyComponent.tsx
 ```
 
-### Variables
+**Folder Template Example:**
+```
+ReactComponent/
+├── index.tsx
+├── styles.module.css
+└── __tests__/
+    └── component.test.tsx
+```
 
-Templates support dynamic variables that are replaced during creation:
+## 🔧 Variables
 
-#### Built-in Variables
-- `$DATE$` - Current date (YYYY-MM-DD)
-- `$TIME$` - Current time (HH:MM:SS)
-- `$YEAR$` - Current year
-- `$MONTH$` - Current month
-- `$DAY$` - Current day
-- `$USERNAME$` - Current user name
+Templates support powerful variable substitution:
 
-#### Context Variables (Auto-populated)
-- `$WORKSPACE_NAME$` - Name of the current workspace
-- `$WORKSPACE_PATH$` - Path to the workspace root
-- `$TARGET_DIR$` - Name of the target directory
-- `$TARGET_PATH$` - Full path to the target directory
+### Built-in Variables
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `$DATE$` | Current date | `2025-10-06` |
+| `$TIME$` | Current time | `14:30:45` |
+| `$YEAR$` | Current year | `2025` |
+| `$MONTH$` | Current month | `10` |
+| `$DAY$` | Current day | `06` |
+| `$USER$` | Current user | `jhaisley` |
+| `$RANDOM$` | Random number | `42857` |
+| `$UUID$` | UUID v4 | `a1b2c3d4-...` |
 
-#### Custom Variables
-Define custom variables in your templates:
-```typescript
+### Context Variables (Auto-filled)
+| Variable | Description |
+|----------|-------------|
+| `$WORKSPACE_NAME$` | Active workspace name |
+| `$TARGET_DIR$` | Target directory name |
+| `$TARGET_PATH$` | Full target path |
+
+### Custom Variables
+
+Create prompts by using undefined variables:
+
+```tsx
 // Template: Component-$COMPONENT_NAME$.tsx
 import React from 'react';
 
 interface $COMPONENT_NAME$Props {
-  // Add your props here
+  // Props here
 }
 
 export const $COMPONENT_NAME$: React.FC<$COMPONENT_NAME$Props> = () => {
-  return (
-    <div>
-      <h1>Hello from $COMPONENT_NAME$!</h1>
-    </div>
-  );
+  return <div>Hello from $COMPONENT_NAME$!</div>;
 };
 ```
 
-## Configuration
+You'll be prompted for `$COMPONENT_NAME$` when creating from this template.
 
-The extension contributes the following settings:
+## ⚙️ Configuration
 
-### `newFromTemplate.templatesPath`
-- **Type**: `string`
-- **Default**: `%LOCALAPPDATA%\\Microsoft\\PowerToys\\NewPlus\\Templates`
-- **Description**: Path to the templates directory
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `newFromTemplate.templatesPath` | string | `%LOCALAPPDATA%\Microsoft\PowerToys\NewPlus\Templates` | Templates directory path |
+| `newFromTemplate.display.hideFileExtensions` | boolean | `true` | Hide extensions in picker |
+| `newFromTemplate.display.hideSortingPrefix` | boolean | `false` | Hide leading numbers (e.g., `01.`) |
+| `newFromTemplate.behavior.replaceVariablesInFilename` | boolean | `false` | Enable variables in filenames |
 
-### `newFromTemplate.display.hideFileExtensions`
-- **Type**: `boolean`
-- **Default**: `true`
-- **Description**: Hide file extensions in the template picker for cleaner display
+### Commands
 
-### `newFromTemplate.display.hideSortingPrefix`
-- **Type**: `boolean`
-- **Default**: `false`
-- **Description**: Hide leading digits and dots from template names (e.g., "01.MyTemplate" shows as "MyTemplate")
+| Command | Description |
+|---------|-------------|
+| `New+` | Create from template |
+| `New+: Open Templates Folder` | Open templates directory |
 
-### `newFromTemplate.behavior.replaceVariablesInFilename`
-- **Type**: `boolean`
-- **Default**: `false`
-- **Description**: Enable variable substitution in file and folder names
+## 🧠 Smart Features
 
-## Commands
+### Context Detection
+NewPlus detects your project type and suggests relevant templates:
 
-The extension provides the following commands:
+- **Node.js** → JavaScript/TypeScript templates
+- **Python** → Python module templates  
+- **Java** → Class/interface templates
+- **Generic** → All templates
 
-- `newFromTemplate.createFromTemplate` - **New+**: Create file/folder from template
-- `newFromTemplate.openTemplatesFolder` - **New from Template: Open Templates Folder**: Open the templates directory
+### Workspace Integration
+- ✅ Multi-root workspace support
+- ✅ Active editor context awareness
+- ✅ Intelligent target directory resolution
+- ✅ Real-time name validation
 
-## Context Menu Integration
+## 🔧 Development
 
-The extension adds context menu items to the VS Code file explorer:
-
-- **File Explorer** → Right-click on folder → **New+**
-- **File Menu** → **New File** → **New+**
-
-Context menu integration provides:
-- **Smart Filtering**: Only shows relevant templates for the selected location
-- **Workspace Awareness**: Considers project type and current workspace
-- **Quick Access**: One-click template creation from any folder
-
-## Workspace Integration
-
-NewPlus automatically detects and integrates with your workspace:
-
-### Project Type Detection
-- **Node.js**: Detects `package.json` and suggests JavaScript/TypeScript templates
-- **Python**: Detects `requirements.txt`, `setup.py` and suggests Python templates
-- **Java**: Detects Maven/Gradle files and suggests Java templates
-- **Generic**: Fallback for unrecognized project types
-
-### Workspace Features
-- **Multi-root Support**: Works with multi-root workspaces
-- **Active Editor Context**: Uses currently active file location as context
-- **Target Directory Resolution**: Intelligently determines where to create new content
-
-## Development
-
-### Building from Source
+### Build from Source
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd new_plus_ext
-
-# Install dependencies
+git clone https://github.com/jhaisley/newplus.git
+cd newplus
 npm install
-
-# Compile TypeScript
 npm run compile
-
-# Run tests
 npm test
-
-# Package extension
-vsce package
-```
-
-### Project Structure
-
-```
-src/
-├── commands/           # VS Code command implementations
-├── models/            # Data models and interfaces  
-├── services/          # Core business logic services
-├── utils/             # Integration utilities
-│   ├── workspaceIntegration.ts    # Workspace detection
-│   └── contextMenuIntegration.ts  # Context menu logic
-└── extension.ts       # Main extension entry point
-
-tests/                 # Comprehensive test suite
 ```
 
 ### Architecture
 
-The extension follows a layered architecture:
+```
+Commands → Services → Models → Utils
+   ↓
+Template Discovery (lazy loading, parallel)
+Variable Substitution (10-level recursion)
+Context Detection (workspace intelligence)
+```
 
-1. **Extension Layer**: VS Code API integration and command registration
-2. **Service Layer**: Core business logic (config, templates, variables)
-3. **Utilities Layer**: VS Code-specific integration helpers
-4. **Model Layer**: Data structures and interfaces
+**Tech Stack:**
+- TypeScript 5.1+ (strict mode)
+- VS Code Extension API 1.104+
+- Mocha test framework
 
-## Requirements
+## 📋 Requirements
 
-- **VS Code**: Version 1.74.0 or higher
-- **Node.js**: Version 16.0 or higher (for development)
-- **Templates Directory**: Writable access to the configured templates path
+- VS Code 1.104.0 or higher
+- Node.js 16+ (for development)
 
-## Known Issues
+## 🐛 Troubleshooting
 
-- Template discovery may be slow for very large template directories (>1000 templates)
-- Variable substitution in binary files is not supported
-- Nested variable references have a recursion limit of 10 levels
+**Templates not showing?**
+- Check `newFromTemplate.templatesPath` setting
+- Verify templates directory exists and is readable
+- Reload window: `Developer: Reload Window`
 
-## Troubleshooting
+**Variables not working?**
+- Enable `newFromTemplate.behavior.replaceVariablesInFilename`
+- Use correct syntax: `$VARIABLE_NAME$`
+- Check recursion limit (max 10 levels)
 
-### Templates Not Found
-1. Check the `newFromTemplate.templatesPath` setting
-2. Ensure the templates directory exists and is readable
-3. Verify templates follow the expected structure
+**Context menu missing?**
+- Reload VS Code
+- Verify extension is enabled
+- Right-click on folders (not files)
 
-### Context Menu Missing
-1. Reload VS Code window (`Developer: Reload Window`)
-2. Check that the extension is enabled
-3. Verify you're right-clicking on folders (not files) in the file explorer
+## 🤝 Contributing
 
-### Variable Substitution Issues
-1. Enable `newFromTemplate.behavior.replaceVariablesInFilename` for filename variables
-2. Check variable syntax matches `$VARIABLE_NAME$` format
-3. Ensure custom variables are defined in template prompts
+Contributions welcome! Areas of interest:
+- Template examples and starter packs
+- Additional project type detection
+- Enhanced variable features
+- UI/UX improvements
 
-## Contributing
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+## 📜 License
 
-### Areas for Contribution
-- Additional template types and examples
-- Enhanced workspace detection for more project types
-- Improved variable substitution features
-- Better error handling and user feedback
+[MIT License](LICENSE) - see file for details.
 
-## License
+## 🙏 Acknowledgments
 
-[MIT License](LICENSE)
-
-## Acknowledgments
-
-- Based on the New+ PowerToy from Microsoft PowerToys
-- Inspired by the VS Code extension development community
-- Thanks to all contributors and users who provide feedback
+- Inspired by [Microsoft PowerToys NewPlus](https://github.com/microsoft/PowerToys)
+- Built with the VS Code Extension API
+- Thanks to all contributors and users! 🎉
 
 ---
 
-**Enjoy creating with NewPlus!** 🚀
+**Made with ❤️ by [Jordan Haisley](https://github.com/jhaisley)**
+
+[![GitHub](https://img.shields.io/badge/GitHub-newplus-blue?logo=github)](https://github.com/jhaisley/newplus)
+[![Issues](https://img.shields.io/github/issues/jhaisley/newplus)](https://github.com/jhaisley/newplus/issues)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/jhaisley/newplus/pulls)

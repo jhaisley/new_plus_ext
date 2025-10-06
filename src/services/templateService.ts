@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import * as fs from 'fs/promises';
 import { Template, TemplateDiscoveryOptions, TemplateValidationResult } from '../models/template';
 import { ConfigService } from './configService';
 
@@ -301,21 +300,25 @@ export class TemplateService {
     
     try {
       console.log(`TemplateService: Reading directory: ${basePath}`);
-      const entries = await fs.readdir(basePath, { withFileTypes: true });
+      const baseUri = vscode.Uri.file(basePath);
+      const entries = await vscode.workspace.fs.readDirectory(baseUri);
       console.log(`TemplateService: Found ${entries.length} entries in directory`);
       
-      for (const entry of entries) {
-        console.log(`TemplateService: Checking entry: ${entry.name}, isDirectory: ${entry.isDirectory()}`);
-        if (entry.isDirectory()) {
-          const fullPath = path.join(basePath, entry.name);
+      for (const [name, type] of entries) {
+        console.log(`TemplateService: Checking entry: ${name}, type: ${type}`);
+        if (type === vscode.FileType.Directory) {
+          const fullPath = path.join(basePath, name);
           
           // Check if this directory contains a template.json file
           const templateJsonPath = path.join(fullPath, 'template.json');
+          const templateJsonUri = vscode.Uri.file(templateJsonPath);
           console.log(`TemplateService: Checking for template.json at: ${templateJsonPath}`);
-          if (await this.fileExists(templateJsonPath)) {
+          
+          try {
+            await vscode.workspace.fs.stat(templateJsonUri);
             console.log(`TemplateService: Found template directory: ${fullPath}`);
             templateDirs.push(fullPath);
-          } else {
+          } catch {
             console.log(`TemplateService: No template.json found in: ${fullPath}`);
           }
           
@@ -339,7 +342,10 @@ export class TemplateService {
   private async loadTemplate(templateDir: string): Promise<Template | null> {
     try {
       const templateJsonPath = path.join(templateDir, 'template.json');
-      const templateJsonContent = await fs.readFile(templateJsonPath, 'utf8');
+      // Read template configuration
+      const templateJsonUri = vscode.Uri.file(templateJsonPath);
+      const templateJsonData = await vscode.workspace.fs.readFile(templateJsonUri);
+      const templateJsonContent = new TextDecoder().decode(templateJsonData);
       const templateConfig = JSON.parse(templateJsonContent);
       
       // Load template files
@@ -373,24 +379,27 @@ export class TemplateService {
     const files: any[] = [];
     
     try {
-      const entries = await fs.readdir(templateDir, { withFileTypes: true });
+      const dirUri = vscode.Uri.file(templateDir);
+      const entries = await vscode.workspace.fs.readDirectory(dirUri);
       
-      for (const entry of entries) {
-        if (entry.name === 'template.json') {
+      for (const [name, type] of entries) {
+        if (name === 'template.json') {
           continue; // Skip template config file
         }
         
-        const fullPath = path.join(templateDir, entry.name);
+        const fullPath = path.join(templateDir, name);
         
-        if (entry.isFile()) {
-          const content = await fs.readFile(fullPath, 'utf8');
+        if (type === vscode.FileType.File) {
+          const fileUri = vscode.Uri.file(fullPath);
+          const fileData = await vscode.workspace.fs.readFile(fileUri);
+          const content = new TextDecoder().decode(fileData);
           files.push({
-            relativePath: entry.name,
+            relativePath: name,
             content
           });
-        } else if (entry.isDirectory()) {
+        } else if (type === vscode.FileType.Directory) {
           // Recursively load files from subdirectories
-          const subFiles = await this.loadTemplateFilesRecursive(fullPath, entry.name);
+          const subFiles = await this.loadTemplateFilesRecursive(fullPath, name);
           files.push(...subFiles);
         }
       }
@@ -404,24 +413,27 @@ export class TemplateService {
   /**
    * Recursively load template files
    */
-  private async loadTemplateFilesRecursive(dirPath: string, relativePath: string): Promise<any[]> {
+  private async loadTemplateFilesRecursive(dirPath: string, baseRelativePath: string): Promise<any[]> {
     const files: any[] = [];
     
     try {
-      const entries = await fs.readdir(dirPath, { withFileTypes: true });
+      const dirUri = vscode.Uri.file(dirPath);
+      const entries = await vscode.workspace.fs.readDirectory(dirUri);
       
-      for (const entry of entries) {
-        const fullPath = path.join(dirPath, entry.name);
-        const relPath = path.join(relativePath, entry.name);
+      for (const [name, type] of entries) {
+        const fullPath = path.join(dirPath, name);
+        const relativePath = path.join(baseRelativePath, name);
         
-        if (entry.isFile()) {
-          const content = await fs.readFile(fullPath, 'utf8');
+        if (type === vscode.FileType.File) {
+          const fileUri = vscode.Uri.file(fullPath);
+          const fileData = await vscode.workspace.fs.readFile(fileUri);
+          const content = new TextDecoder().decode(fileData);
           files.push({
-            relativePath: relPath,
+            relativePath: relativePath,
             content
           });
-        } else if (entry.isDirectory()) {
-          const subFiles = await this.loadTemplateFilesRecursive(fullPath, relPath);
+        } else if (type === vscode.FileType.Directory) {
+          const subFiles = await this.loadTemplateFilesRecursive(fullPath, relativePath);
           files.push(...subFiles);
         }
       }
@@ -433,19 +445,7 @@ export class TemplateService {
   }
 
   /**
-   * Check if file exists
-   */
-  private async fileExists(filePath: string): Promise<boolean> {
-    try {
-      await fs.access(filePath);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  /**
-   * Filter templates based on options
+   * Load template content lazily when needed
    */
   private filterTemplates(templates: Template[], options?: TemplateDiscoveryOptions): Template[] {
     if (!options) {return templates;}
@@ -487,7 +487,9 @@ export class TemplateService {
       // Load the first file's content for preview purposes
       const firstFile = template.files[0];
       const fullPath = path.join(template.path, firstFile.relativePath);
-      const content = await fs.readFile(fullPath, 'utf-8');
+      const fileUri = vscode.Uri.file(fullPath);
+      const fileData = await vscode.workspace.fs.readFile(fileUri);
+      const content = new TextDecoder().decode(fileData);
       
       firstFile.content = content;
       this.templateContentCache.set(cacheKey, content);

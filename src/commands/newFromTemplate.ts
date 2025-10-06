@@ -87,9 +87,12 @@ export class NewFromTemplateCommand {
    * Execute the main command
    */
   public async execute(uri?: vscode.Uri): Promise<TemplateCreationResult | undefined> {
-    return await ErrorHandler.withErrorHandling(async () => {
+    try {
       // Get available templates
+      console.log('NewPlus: Fetching templates...');
       const templates = await this.templateService.getTemplates();
+      console.log(`NewPlus: Found ${templates.length} templates`);
+      
       if (templates.length === 0) {
         // Get the actual path being used for better error message
         let templatesPath = 'templates directory';
@@ -97,22 +100,29 @@ export class NewFromTemplateCommand {
           try {
             const config = await this.configService.getConfiguration();
             templatesPath = config.templatesPath;
-          } catch {
-            // Fallback if config access fails
+            console.log(`NewPlus: Templates path: ${templatesPath}`);
+          } catch (configError) {
+            console.error('NewPlus: Failed to get config:', configError);
           }
         }
         
-        throw new NewPlusError(
-          ErrorType.TEMPLATE_NOT_FOUND,
-          `No templates found in the templates directory: ${templatesPath}`,
-          'No templates available to create from',
-          [
-            `Check if the templates directory exists: ${templatesPath}`,
-            'Add template files to the templates folder',
-            'Verify the templates path in settings',
-            'Use "New from Template: Open Templates Folder" to access the folder'
-          ]
+        const errorMessage = `No templates found in: ${templatesPath}`;
+        console.error('NewPlus:', errorMessage);
+        
+        // Show detailed error message directly
+        const actions = ['Open Templates Folder', 'Open Settings'];
+        const selectedAction = await vscode.window.showErrorMessage(
+          errorMessage,
+          ...actions
         );
+        
+        if (selectedAction === 'Open Templates Folder') {
+          await vscode.commands.executeCommand('newFromTemplate.openTemplatesFolder');
+        } else if (selectedAction === 'Open Settings') {
+          await vscode.commands.executeCommand('workbench.action.openSettings', 'newFromTemplate');
+        }
+        
+        return { success: false, error: errorMessage };
       }
 
       // Determine context from URI
@@ -174,7 +184,11 @@ export class NewFromTemplateCommand {
       }
 
       return result;
-    }, 'creating from template');
+    } catch (error) {
+      console.error('NewPlus: Error in execute:', error);
+      await ErrorHandler.handleError(error, 'creating from template');
+      return { success: false, error: String(error) };
+    }
   }
 
   /**

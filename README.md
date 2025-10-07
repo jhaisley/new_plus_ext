@@ -4,6 +4,7 @@
 [![GitHub Release](https://img.shields.io/github/v/release/jhaisley/new_plus_ext)](https://github.com/jhaisley/new_plus_ext/releases)
 [![VS Code Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/jhaisley.newplus)](https://marketplace.visualstudio.com/items?itemName=jhaisley.newplus)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![SLSA Level 2](https://img.shields.io/badge/SLSA-Level%202-blue?logo=security&logoColor=white)](https://slsa.dev/spec/v1.0/levels#build-l2)
 [![Install in VS Code](https://img.shields.io/badge/-Install%20in%20VS%20Code-blue?logo=visualstudiocode)](vscode:extension/jhaisley.newplus)
 [![Install in VS Code Insiders](https://img.shields.io/badge/-Install%20in%20VS%20Code%20Insiders-green?logo=visualstudiocode)](vscode-insiders:extension/jhaisley.newplus)
 
@@ -39,10 +40,34 @@ Create files and folders from templates with context-aware suggestions and works
 4. Click Install
 
 **From VSIX:**
-1. Download `newplus-1.0.1.vsix` from [releases](https://github.com/jhaisley/new_plus_ext/releases)
+1. Download the latest `.vsix` file from [releases](https://github.com/jhaisley/new_plus_ext/releases)
 2. Open VS Code
 3. Run `Extensions: Install from VSIX...`
 4. Select the downloaded file
+
+### 🔒 Security & Attestations
+
+This project achieves **[SLSA Level 2](https://slsa.dev/spec/v1.0/levels#build-l2)** compliance:
+- ✅ Automated builds using GitHub Actions
+- ✅ Version-controlled source in GitHub
+- ✅ Provenance generated and signed for all releases
+- ✅ Build attestations publicly verifiable
+
+All releases are signed with [GitHub Attestations](https://github.com/jhaisley/new_plus_ext/attestations) to verify authenticity and integrity.
+
+**To verify a release:**
+
+Using GitHub CLI:
+```bash
+gh attestation verify newplus-1.0.4.vsix --owner jhaisley
+```
+
+Or verify online:
+1. Go to [Attestations](https://github.com/jhaisley/new_plus_ext/attestations)
+2. Find the artifact you downloaded
+3. Verify the checksum matches your downloaded file
+
+This ensures the VSIX file you download is the official release from this repository and hasn't been tampered with.
 
 ## 🎯 Usage
 

@@ -89,6 +89,22 @@ npm test          # Run all tests
 vsce package      # Create .vsix
 ```
 
+**Release**:
+To create a new release, push a version tag:
+```bash
+git tag v1.2.3           # Create version tag
+git push origin v1.2.3   # Push tag to trigger release workflow
+```
+
+The release workflow will automatically:
+1. Extract the version from the tag (removing 'v' prefix)
+2. Update `package.json` and `package-lock.json` to match the tag version
+3. Commit and push the version bump back to main
+4. Compile the extension
+5. Package the extension as a `.vsix` file
+6. Generate build attestation
+7. Create a GitHub release with the `.vsix` file attached
+
 ## File Structure
 
 ```

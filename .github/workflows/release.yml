@@ -82,7 +82,7 @@ jobs:
       - name: Generate attestation
         uses: actions/attest-build-provenance@v2
         with:
-          subject-path: ${{ env.VSIX_FILE }}
+          subject-path: /home/runner/work/new_plus_ext/new_plus_ext/${{ env.VSIX_FILE }}
           
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

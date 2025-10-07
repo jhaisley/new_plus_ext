@@ -1,6 +1,8 @@
 # NewPlus for VS Code
 
-[![Version](https://img.shields.io/badge/version-1.0.1-blue.svg)](https://github.com/jhaisley/new_plus_ext/releases)
+[![Version](https://img.shields.io/github/package-json/v/jhaisley/new_plus_ext)](https://github.com/jhaisley/new_plus_ext/releases)
+[![GitHub Release](https://img.shields.io/github/v/release/jhaisley/new_plus_ext)](https://github.com/jhaisley/new_plus_ext/releases)
+[![VS Code Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/jhaisley.newplus)](https://marketplace.visualstudio.com/items?itemName=jhaisley.newplus)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Install in VS Code](https://img.shields.io/badge/-Install%20in%20VS%20Code-blue?logo=visualstudiocode)](vscode:extension/jhaisley.newplus)
 [![Install in VS Code Insiders](https://img.shields.io/badge/-Install%20in%20VS%20Code%20Insiders-green?logo=visualstudiocode)](vscode-insiders:extension/jhaisley.newplus)

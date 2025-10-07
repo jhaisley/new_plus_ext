@@ -1,11 +1,11 @@
 # NewPlus for VS Code
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/jhaisley/newplus/releases)
+[![Version](https://img.shields.io/badge/version-1.0.1-blue.svg)](https://github.com/jhaisley/new_plus_ext/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Install in VS Code](https://img.shields.io/badge/-Install%20in%20VS%20Code-blue?logo=visualstudiocode)](vscode:extension/jhaisley.newplus)
+[![Install in VS Code Insiders](https://img.shields.io/badge/-Install%20in%20VS%20Code%20Insiders-green?logo=visualstudiocode)](vscode-insiders:extension/jhaisley.newplus)
 
 Create files and folders from templates with context-aware suggestions and workspace intelligence. A powerful VS Code extension that brings PowerToys NewPlus functionality to your editor.
-
-![NewPlus Demo](https://raw.githubusercontent.com/jhaisley/newplus/main/images/demo.gif)
 
 ## ✨ Features
 
@@ -17,7 +17,7 @@ Create files and folders from templates with context-aware suggestions and works
 ### 📝 Template System
 - **File Templates**: Individual files with variable substitution
 - **Folder Templates**: Complete directory structures with multiple files
-- **Variable Support**: Built-in and custom variables (`$DATE$`, `$USERNAME$`, custom prompts)
+- **Variable Support**: Built-in variables (`$DATE$`, `$USER$`, `$WORKSPACE_NAME$`, etc.)
 - **PowerToys Compatible**: Uses PowerToys NewPlus template directory structure
 
 ### 🚀 Seamless Integration
@@ -37,7 +37,7 @@ Create files and folders from templates with context-aware suggestions and works
 4. Click Install
 
 **From VSIX:**
-1. Download `newplus-1.0.0.vsix` from [releases](https://github.com/jhaisley/newplus/releases)
+1. Download `newplus-1.0.1.vsix` from [releases](https://github.com/jhaisley/new_plus_ext/releases)
 2. Open VS Code
 3. Run `Extensions: Install from VSIX...`
 4. Select the downloaded file
@@ -102,24 +102,7 @@ Templates support powerful variable substitution:
 | `$TARGET_DIR$` | Target directory name |
 | `$TARGET_PATH$` | Full target path |
 
-### Custom Variables
-
-Create prompts by using undefined variables:
-
-```tsx
-// Template: Component-$COMPONENT_NAME$.tsx
-import React from 'react';
-
-interface $COMPONENT_NAME$Props {
-  // Props here
-}
-
-export const $COMPONENT_NAME$: React.FC<$COMPONENT_NAME$Props> = () => {
-  return <div>Hello from $COMPONENT_NAME$!</div>;
-};
-```
-
-You'll be prompted for `$COMPONENT_NAME$` when creating from this template.
+> **Note:** Custom variable prompts are not currently implemented. Only the built-in and context variables listed above are supported.
 
 ## ⚙️ Configuration
 
@@ -158,8 +141,8 @@ NewPlus detects your project type and suggests relevant templates:
 ### Build from Source
 
 ```bash
-git clone https://github.com/jhaisley/newplus.git
-cd newplus
+git clone https://github.com/jhaisley/new_plus_ext.git
+cd new_plus_ext
 npm install
 npm run compile
 npm test
@@ -200,14 +183,14 @@ Context Detection (workspace intelligence)
 **Context menu missing?**
 - Reload VS Code
 - Verify extension is enabled
-- Right-click on folders (not files)
+- Right-click on folders or files in Explorer
 
 ## 🤝 Contributing
 
 Contributions welcome! Areas of interest:
 - Template examples and starter packs
 - Additional project type detection
-- Enhanced variable features
+- Custom variable prompts and enhanced variable features
 - UI/UX improvements
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
@@ -226,6 +209,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 **Made with ❤️ by [Jordan Haisley](https://github.com/jhaisley)**
 
-[![GitHub](https://img.shields.io/badge/GitHub-newplus-blue?logo=github)](https://github.com/jhaisley/newplus)
-[![Issues](https://img.shields.io/github/issues/jhaisley/newplus)](https://github.com/jhaisley/newplus/issues)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/jhaisley/newplus/pulls)
+[![GitHub](https://img.shields.io/badge/GitHub-new_plus_ext-blue?logo=github)](https://github.com/jhaisley/new_plus_ext)
+[![Issues](https://img.shields.io/github/issues/jhaisley/new_plus_ext)](https://github.com/jhaisley/new_plus_ext/issues)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/jhaisley/new_plus_ext/pulls)

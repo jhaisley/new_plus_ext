@@ -1,0 +1,93 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Extract version from tag
+        id: extract_version
+        run: |
+          # Extract version without 'v' prefix
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Extracted version: ${VERSION}"
+          
+      - name: Update package.json version
+        run: |
+          VERSION=${{ steps.extract_version.outputs.version }}
+          echo "Updating package.json version to ${VERSION}"
+          
+          # Update version in package.json
+          npm version ${VERSION} --no-git-tag-version
+          
+          # Verify the change
+          echo "New version in package.json:"
+          jq -r '.version' package.json
+          
+      - name: Configure git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+      - name: Commit and push version bump
+        run: |
+          VERSION=${{ steps.extract_version.outputs.version }}
+          git add package.json package-lock.json
+          
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes to commit - version already matches tag"
+          else
+            git commit -m "Bump version to ${VERSION} [skip ci]"
+            git push origin HEAD:main
+          fi
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Compile extension
+        run: npm run compile
+        
+      - name: Install vsce
+        run: npm install -g @vscode/vsce
+        
+      - name: Package extension
+        run: |
+          VERSION=${{ steps.extract_version.outputs.version }}
+          vsce package
+          echo "VSIX_FILE=newplus-${VERSION}.vsix" >> $GITHUB_ENV
+          
+      - name: Generate attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: ${{ env.VSIX_FILE }}
+          
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.VSIX_FILE }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false

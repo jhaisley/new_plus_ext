@@ -2,7 +2,7 @@
   "name": "newplus",
   "displayName": "NewPlus extension",
   "description": "Create files and folders from templates with VS Code integration, context-aware suggestions, and workspace intelligence",
-  "version": "1.0.1",
+  "version": "1.0.1-b",
   "repository": {
     "type": "git",
     "url": "https://github.com/jhaisley/new_plus_ext.git"
@@ -21,7 +21,7 @@
   "keywords": [
     "template",
     "file",
-    "folder", 
+    "folder",
     "powertoys",
     "new",
     "create"
@@ -35,7 +35,7 @@
         "title": "New+"
       },
       {
-        "command": "newFromTemplate.openTemplatesFolder", 
+        "command": "newFromTemplate.openTemplatesFolder",
         "title": "Open Templates Folder",
         "category": "New+"
       }
@@ -50,7 +50,7 @@
       ],
       "file/newFile": [
         {
-          "command": "newFromTemplate.createFromTemplate", 
+          "command": "newFromTemplate.createFromTemplate",
           "group": "file@1"
         }
       ]
@@ -59,7 +59,7 @@
       "title": "New from Template",
       "properties": {
         "newFromTemplate.templatesPath": {
-          "type": "string", 
+          "type": "string",
           "default": "%LOCALAPPDATA%\\Microsoft\\PowerToys\\NewPlus\\Templates",
           "description": "Path to templates directory"
         },
@@ -69,13 +69,13 @@
           "description": "Hide file extensions in template picker"
         },
         "newFromTemplate.display.hideSortingPrefix": {
-          "type": "boolean", 
+          "type": "boolean",
           "default": false,
           "description": "Hide leading digits and dots from template names"
         },
         "newFromTemplate.behavior.replaceVariablesInFilename": {
           "type": "boolean",
-          "default": false, 
+          "default": false,
           "description": "Enable variable substitution in filenames"
         }
       }

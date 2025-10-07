@@ -1,16 +1,16 @@
 {
   "name": "newplus",
-  "displayName": "NewPlus",
+  "displayName": "NewPlus extension",
   "description": "Create files and folders from templates with VS Code integration, context-aware suggestions, and workspace intelligence",
   "version": "1.0.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jhaisley/newplus.git"
+    "url": "https://github.com/jhaisley/new_plus_ext.git"
   },
   "bugs": {
-    "url": "https://github.com/jhaisley/newplus/issues"
+    "url": "https://github.com/jhaisley/new_plus_ext/issues"
   },
-  "homepage": "https://github.com/jhaisley/newplus#readme",
+  "homepage": "https://github.com/jhaisley/new_plus_ext#readme",
   "publisher": "jhaisley",
   "engines": {
     "vscode": "^1.104.0"
